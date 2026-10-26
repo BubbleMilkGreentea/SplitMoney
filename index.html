@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- 支援加入手機主畫面後呈現全螢幕原生 App 質感 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="旅遊分帳">
+<title>旅遊彈性分帳系統 Pro</title>
+<style>
+  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; }
+  body { margin: 0; padding: 12px; background: #f1f5f9; color: #1e293b; padding-bottom: 60px; }
+  .container { max-width: 820px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+  .card.editing-mode { border: 2px solid #f59e0b; background: #fffbeb; }
+  h1 { font-size: 20px; margin: 0 0 6px 0; color: #4f46e5; }
+  h2 { font-size: 16px; margin: 0 0 10px 0; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
+  h3 { font-size: 14px; margin: 0 0 8px 0; color: #334155; }
+  .sub { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .between { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  
+  button { border: none; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+  .btn-primary { background: #4f46e5; color: #fff; }
+  .btn-primary:active { background: #4338ca; }
+  .btn-warning { background: #d97706; color: #fff; }
+  .btn-outline { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
+  .btn-outline.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+  .btn-success { background: #059669; color: #fff; }
+  .btn-danger { background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 12px; }
+  .btn-edit { background: #fef3c7; color: #b45309; padding: 4px 10px; font-size: 12px; border: 1px solid #fde68a; }
+  .btn-sm { padding: 5px 9px; font-size: 12px; }
+
+  input[type="text"], input[type="number"], input[type="date"], input[type="password"] {
+    border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 14px; width: 100%; background: #fff;
+  }
+  input[type="number"] { text-align: right; font-weight: 600; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 13px; border: 1px solid #cbd5e1; background: #f8fafc; cursor: pointer; user-select: none; }
+  .chip.checked-payer { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+  .chip.checked-part { background: #059669; color: #fff; border-color: #059669; }
+  .badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #e0e7ff; color: #4338ca; }
+  .badge-local { background: #fef3c7; color: #b45309; }
+
+  .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; background: #fff; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
+  th { background: #f1f5f9; color: #475569; font-size: 12px; }
+  .text-right { text-align: right; }
+  .status-ok { color: #059669; font-size: 12px; font-weight: 600; }
+  .status-err { color: #dc2626; font-size: 12px; font-weight: 600; }
+  .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .mode-btn { text-align: left; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
+  .mode-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+  .hidden { display: none !important; }
+  
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; }
+  .modal-box { background: #fff; border-radius: 14px; width: 92%; max-width: 480px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 92vh; overflow-y: auto; }
+  .short-code-display { font-family: monospace; font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #4f46e5; background: #eef2ff; border: 2px dashed #6366f1; border-radius: 10px; padding: 10px; text-align: center; margin: 8px 0; user-select: all; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 頂部切換列 -->
+  <div class="card between">
+    <div>
+      <h1>✈️ 旅遊彈性分帳系統 Pro</h1>
+      <div class="sub" style="margin:0;">支援無限群組與成員、歷史帳務修改、短代碼同步與 4 種分帳法</div>
+    </div>
+    <div class="row">
+      <button id="tab-groups-btn" class="btn-outline active" onclick="switchTab('groups')">📂 旅遊分帳群組 (<span id="grp-count">0</span>)</button>
+      <button id="tab-sys-btn" class="btn-outline" onclick="switchTab('sys')">👥 系統總成員庫 (<span id="sys-count">0</span>)</button>
+    </div>
+  </div>
+
+  <!-- 分頁 1：系統總成員庫 -->
+  <div id="view-sys" class="card hidden">
+    <div class="between">
+      <div>
+        <h2>系統總成員庫管理（無人數上限）</h2>
+        <div class="sub">在此建立常用成員名單，建立不同旅遊群組時可直接勾選拉入。</div>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom: 12px;">
+      <input type="text" id="new-sys-member-input" placeholder="輸入姓名（可用逗號或空格分隔一次新增多人，如：阿傑, 小華, 冠宇）" style="flex:1;">
+      <button class="btn-primary" onclick="addSystemMember()">＋ 新增至系統</button>
+    </div>
+    <div id="sys-members-list" class="row"></div>
+  </div>
+
+  <!-- 分頁 2：旅遊群組與分帳 -->
+  <div id="view-groups">
+    <!-- 群組切換與建立 -->
+    <div class="card">
+      <div class="between">
+        <div class="row" id="group-tabs-list"></div>
+        <div class="row" style="width: 100%; max-width: 340px;">
+          <input type="text" id="new-group-input" placeholder="輸入新旅遊群組名稱" style="flex:1;">
+          <button class="btn-primary" onclick="createGroup()" style="white-space:nowrap;">＋ 建立群組</button>
+          <button class="btn-outline btn-sm" onclick="openImportNewModal()" title="輸入短代碼或縮短同步碼載入群組">📥 匯入群組</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 尚未建立任何群組時的引導畫面 -->
+    <div id="empty-group-guide" class="card hidden" style="text-align:center; padding: 36px 16px;">
+      <h2 style="border:none;">尚未建立任何旅遊分帳群組</h2>
+      <div class="sub">請在上方輸入旅遊名稱點擊「＋ 建立群組」，或點擊「📥 匯入群組」輸入朋友分享的短代碼。</div>
+    </div>
+
+    <!-- 群組詳細內容 -->
+    <div id="group-content" class="hidden">
+      <!-- A. 群組成員管理與協同分享 -->
+      <div class="card">
+        <div class="between">
+          <h2 id="current-group-title" style="border:none; margin:0; padding:0;">📍 群組成員</h2>
+          <div class="row">
+            <button class="btn-success btn-sm" onclick="openShareModal()">🔗 短代碼同步 / 分享</button>
+            <button class="btn-outline btn-sm" onclick="toggleMemberPanel()">➕ 新增 / 拉入成員</button>
+            <button class="btn-danger" onclick="deleteCurrentGroup()">刪除群組</button>
+          </div>
+        </div>
+
+        <!-- 成員管理面板 -->
+        <div id="member-manage-panel" class="box hidden">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+            <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+              <div class="between" style="margin-bottom:6px;">
+                <h3>方式 1：從系統成員庫拉入</h3>
+                <button class="btn-outline btn-sm" onclick="importAllSystemMembers()">全部拉入</button>
+              </div>
+              <div id="available-sys-members" class="row" style="max-height:110px; overflow-y:auto; margin-bottom:8px;"></div>
+            </div>
+            <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+              <h3>方式 2：在此群組單獨建立</h3>
+              <input type="text" id="new-group-member-input" placeholder="輸入成員名稱（可用逗號分隔多人）" style="margin-bottom:8px;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer; margin-bottom:8px;">
+                <input type="checkbox" id="sync-to-sys-checkbox">
+                <span>同時歸納回「整個系統的成員庫」</span>
+              </label>
+              <button class="btn-success" style="width:100%;" onclick="addGroupMember()">＋ 建立群組成員</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="group-members-list" class="row" style="margin-top: 12px;"></div>
+      </div>
+
+      <!-- B. 新增 / 編輯花費與分帳設定 -->
+      <div id="expense-form-card" class="card">
+        <div class="between" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px;">
+          <h2 id="form-header-title" style="border:none; margin:0; padding:0;">➕ 新增一筆花費紀錄</h2>
+          <button id="cancel-edit-btn" class="btn-outline btn-sm hidden" onclick="cancelEditExpense()">✕ 取消編輯（返回新增模式）</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+          <div>
+            <div class="sub" style="margin-bottom:4px;">花費項目名稱</div>
+            <input type="text" id="exp-title" placeholder="例如：晚餐烤肉、計程車" oninput="onTitleInput(this.value)">
+          </div>
+          <div>
+            <div class="sub" style="margin-bottom:4px;">總金額 ($)</div>
+            <input type="number" id="exp-total" placeholder="0" min="0" step="any" oninput="onTotalInput(this.value)">
+          </div>
+          <div>
+            <div class="sub" style="margin-bottom:4px;">消費日期 (選填)</div>
+            <input type="date" id="exp-date" onchange="onDateChange(this.value)">
+          </div>
+        </div>
+
+        <!-- 步驟 1：選擇付款人 (自動代入全額) -->
+        <div class="box">
+          <div class="between">
+            <h3>1️⃣ 付款人（只選 1 人自動代入全額；選多人可各自輸入）</h3>
+            <div id="payers-status" class="status-ok"></div>
+          </div>
+          <div id="payers-chips" class="row" style="margin: 8px 0;"></div>
+          <div id="payers-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;"></div>
+        </div>
+
+        <!-- 步驟 2：參與成員 -->
+        <div class="box">
+          <div class="between">
+            <h3>2️⃣ 勾選有參與此項花費的成員</h3>
+            <div class="row">
+              <button class="btn-outline btn-sm" onclick="toggleAllParts(true)">全選</button>
+              <button class="btn-outline btn-sm" onclick="toggleAllParts(false)">全不選</button>
+            </div>
+          </div>
+          <div id="parts-chips" class="row" style="margin-top: 8px;"></div>
+        </div>
+
+        <!-- 步驟 3：4種分帳法 -->
+        <div class="box">
+          <h3>3️⃣ 選擇參與成員的分帳方式</h3>
+          <div class="mode-grid">
+            <button id="mode-equal" class="mode-btn active" onclick="setSplitMode('equal')">
+              <div>(1) 成員全部平分</div>
+              <div style="font-size:11px; font-weight:normal; opacity:0.85;">均分總額</div>
+            </button>
+            <button id="mode-ratio" class="mode-btn" onclick="setSplitMode('ratio')">
+              <div>(2) 依不同比例分配</div>
+              <div style="font-size:11px; font-weight:normal; opacity:0.85;">依權重份數</div>
+            </button>
+            <button id="mode-exact" class="mode-btn" onclick="setSplitMode('exact')">
+              <div>(3) 自行輸入金額</div>
+              <div style="font-size:11px; font-weight:normal; opacity:0.85;">手動指定各人應付</div>
+            </button>
+            <button id="mode-hybrid" class="mode-btn" onclick="setSplitMode('hybrid')">
+              <div>(4) 特定人先付XX元</div>
+              <div style="font-size:11px; font-weight:normal; opacity:0.85;">先扣固定額，剩餘勾選分攤</div>
+            </button>
+          </div>
+
+          <!-- 模式 (4) 專屬說明與切換列 -->
+          <div id="hybrid-sub-bar" class="hidden" style="background:#e0e7ff; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <div class="between">
+              <div style="font-size:12px; color:#1e1b4b;">
+                💡 <strong>先付固定金額的人，依然可以勾選參與「剩餘金額分攤」！</strong><br>
+                <span id="hybrid-pool-info"></span>
+              </div>
+              <div class="row">
+                <span style="font-size:12px; font-weight:bold;">剩餘金額分法：</span>
+                <button id="hybrid-sub-equal" class="btn-outline btn-sm active" onclick="setHybridSubMode('equal')">勾選者平分</button>
+                <button id="hybrid-sub-ratio" class="btn-outline btn-sm" onclick="setHybridSubMode('ratio')">勾選者按比例</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="split-table-container"></div>
+
+          <div class="between" style="margin-top: 12px;">
+            <div id="shares-status" class="status-ok"></div>
+            <div class="row">
+              <button id="cancel-edit-btn-bottom" class="btn-outline hidden" onclick="cancelEditExpense()">取消修改</button>
+              <button id="submit-expense-btn" class="btn-primary" style="padding: 10px 18px; font-size: 14px;" onclick="saveExpense()">💾 儲存此筆花費</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C. 結算與歷史 -->
+      <div class="card">
+        <h2>🧮 群組結算建議（誰該給誰多少錢）</h2>
+        <div id="settlement-box"></div>
+      </div>
+
+      <div class="card">
+        <h2>🧾 歷史花費明細 (<span id="exp-count">0</span> 筆) — <span style="font-size:12px; font-weight:normal; color:#64748b;">點擊「✏️ 編輯」即可修改已存紀錄</span></h2>
+        <div id="expenses-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 分享與短代碼同步彈窗 -->
+<div id="share-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>🔗 跨裝置短代碼同步 & 壓縮備份</h2>
+    <div class="sub">提供「雲端短代碼」與「75% 縮短離線碼」兩種方式，朋友載入後即可直接繼續新增或修改帳務！</div>
+    
+    <div id="share-export-section">
+      <div style="margin: 10px 0;">
+        <div class="sub">設定此群組密碼 (選填)：</div>
+        <input type="password" id="modal-group-pwd" placeholder="輸入密碼（留空代表不設密碼）" oninput="updateGroupPassword(this.value)">
+      </div>
+
+      <!-- 方式 A：雲端短代碼 -->
+      <div class="box" style="background:#eef2ff; border-color:#c7d2fe; margin-top:10px;">
+        <div class="between">
+          <h3 style="color:#3730a3; margin:0;">⚡ 方式 A：產生雲端「超短同步碼」(推薦)</h3>
+          <button id="btn-gen-cloud" class="btn-primary btn-sm" onclick="generateCloudShortCode()">✨ 點擊產生短代碼</button>
+        </div>
+        <div class="sub" style="margin-top:4px; margin-bottom:0;">無論有幾百筆帳，都能濃縮成一組簡短代碼（需有網路）：</div>
+        <div id="cloud-code-box" class="hidden">
+          <div id="cloud-short-code-text" class="short-code-display"></div>
+          <button class="btn-outline btn-sm" style="width:100%; background:#fff;" onclick="copyCloudShortCode()">📋 複製短代碼傳給朋友</button>
+        </div>
+      </div>
+
+      <!-- 方式 B：高倍率精簡離線碼 -->
+      <div class="box" style="margin-top:10px;">
+        <h3>🗜️ 方式 B：精簡版離線同步碼（已縮短 75% 長度，免網路）</h3>
+        <input type="text" id="modal-export-data" readonly style="font-size:12px; background:#fff; color:#475569; margin-bottom:6px;" onclick="this.select()">
+        <button class="btn-outline btn-sm" style="width:100%;" onclick="copyExportData()">📋 複製精簡同步碼</button>
+      </div>
+    </div>
+
+    <!-- 匯入區（自動識別短代碼或離線碼） -->
+    <div class="box" style="background:#ecfdf5; border-color:#a7f3d0; margin-top:12px;">
+      <h3 style="color:#065f46;">📥 載入朋友的群組（支援輸入短代碼 或 精簡同步碼）</h3>
+      <input type="text" id="modal-import-data" placeholder="在此輸入短代碼 (如 a9f3k2) 或貼上同步碼..." style="margin-bottom:8px;">
+      <button id="btn-import-action" class="btn-success btn-sm" style="width:100%; padding:9px;" onclick="importGroupData()">📥 立即載入並開啟記帳功能</button>
+    </div>
+
+    <div style="text-align: right; margin-top: 14px;">
+      <button class="btn-outline" onclick="closeShareModal()">關閉視窗</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var state = {
+  tab: 'groups',
+  showMemberPanel: false,
+  editingExpenseId: null,
+  systemMembers: [],
+  groups: [],
+  currentGroupId: null,
+  lastCloudCode: '',
+  form: {
+    title: '',
+    totalAmount: 0,
+    date: new Date().toISOString().split('T')[0],
+    splitMode: 'equal',
+    hybridSubMode: 'equal',
+    payers: {},
+    parts: {}
+  }
+};
+
+function uid(prefix) { return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5); }
+function fmt(n) { var num = Number(n) || 0; return Math.abs(num - Math.round(num)) < 0.05 ? Math.round(num).toString() : num.toFixed(1); }
+
+function saveData() {
+  try {
+    localStorage.setItem('split_pro_sys_v5', JSON.stringify(state.systemMembers));
+    localStorage.setItem('split_pro_grps_v5', JSON.stringify(state.groups));
+  } catch (e) {}
+}
+
+function loadData() {
+  try {
+    var s = localStorage.getItem('split_pro_sys_v5');
+    var g = localStorage.getItem('split_pro_grps_v5');
+    if (s) state.systemMembers = JSON.parse(s);
+    if (g) state.groups = JSON.parse(g);
+  } catch (e) {}
+}
+
+function getCurrentGroup() {
+  for (var i = 0; i < state.groups.length; i++) {
+    if (state.groups[i].id === state.currentGroupId) return state.groups[i];
+  }
+  return null;
+}
+
+function init() {
+  loadData();
+  if (state.groups.length > 0) {
+    state.currentGroupId = state.groups[0].id;
+  } else {
+    state.currentGroupId = null;
+  }
+  resetExpenseForm();
+  renderAll();
+}
+
+// ==================== 專為縮短字串設計的「高倍率陣列壓縮器」(縮短 75% 長度) ====================
+var MODE_TO_INT = { equal: 0, ratio: 1, exact: 2, hybrid: 3 };
+var INT_TO_MODE = ['equal', 'ratio', 'exact', 'hybrid'];
+
+function encodeCompactGroup(grp) {
+  // 將成員 ID 映射為 0, 1, 2... 索引，省去所有長 ID 字串
+  var mIds = grp.members.map(function(m) { return m.id; });
+  var mCompact = grp.members.map(function(m) { return [m.name, m.isSystem ? 1 : 0]; });
+
+  var eCompact = (grp.expenses || []).map(function(e) {
+    var pArr = [];
+    Object.keys(e.payers || {}).forEach(function(k) {
+      var idx = mIds.indexOf(k);
+      if (idx >= 0) pArr.push([idx, Number(fmt(e.payers[k]))]);
+    });
+    var sArr = [];
+    Object.keys(e.shares || {}).forEach(function(k) {
+      var idx = mIds.indexOf(k);
+      if (idx >= 0) sArr.push([idx, Number(fmt(e.shares[k]))]);
+    });
+    var rpArr = [];
+    if (e.rawParts) {
+      Object.keys(e.rawParts).forEach(function(k) {
+        var idx = mIds.indexOf(k);
+        var rp = e.rawParts[k];
+        if (idx >= 0 && rp) {
+          rpArr.push([
+            idx,
+            rp.checked ? 1 : 0,
+            Number(rp.ratio || 1),
+            Number(rp.exact || 0),
+            Number(rp.fixedAmt || 0),
+            rp.joinRemainder ? 1 : 0,
+            Number(rp.hybridRatio || 1)
+          ]);
+        }
+      });
+    }
+    return [
+      e.title,
+      Number(e.totalAmount),
+      (e.date || '').replace(/-/g, ''),
+      MODE_TO_INT[e.splitMode] || 0,
+      e.hybridSubMode === 'ratio' ? 1 : 0,
+      pArr,
+      sArr,
+      rpArr
+    ];
+  });
+
+  var payload = [1, grp.id, grp.name, grp.password || '', mCompact, eCompact];
+  var jsonStr = JSON.stringify(payload);
+  return 'S1:' + btoa(encodeURIComponent(jsonStr));
+}
+
+function decodeCompactGroup(codeStr) {
+  var raw = codeStr.trim();
+  // 相容舊版直接貼 JSON 的情況
+  if (raw.charAt(0) === '{') {
+    return JSON.parse(raw);
+  }
+  if (raw.indexOf('S1:') === 0) {
+    raw = raw.substring(3);
+  }
+  var jsonStr = decodeURIComponent(atob(raw));
+  var p = JSON.parse(jsonStr);
+  if (!Array.isArray(p) || p[0] !== 1) throw new Error('Invalid compact format');
+
+  var gId = p[1] || uid('grp');
+  var gName = p[2] || '匯入的群組';
+  var gPwd = p[3] || '';
+  var mCompact = p[4] || [];
+  var eCompact = p[5] || [];
+
+  var members = mCompact.map(function(item, idx) {
+    return {
+      id: 'gm_' + gId + '_' + idx,
+      systemId: null,
+      name: item[0],
+      isSystem: item[1] === 1
+    };
+  });
+
+  var expenses = eCompact.map(function(item, eIdx) {
+    var dRaw = String(item[2] || '');
+    var dateFormatted = dRaw.length === 8 ? (dRaw.slice(0,4) + '-' + dRaw.slice(4,6) + '-' + dRaw.slice(6,8)) : dRaw;
+    var payers = {}, shares = {}, rawParts = {};
+
+    (item[5] || []).forEach(function(pair) {
+      if (members[pair[0]]) payers[members[pair[0]].id] = pair[1];
+    });
+    (item[6] || []).forEach(function(pair) {
+      if (members[pair[0]]) shares[members[pair[0]].id] = pair[1];
+    });
+    (item[7] || []).forEach(function(rp) {
+      if (members[rp[0]]) {
+        rawParts[members[rp[0]].id] = {
+          checked: rp[1] === 1,
+          ratio: rp[2],
+          exact: rp[3],
+          fixedAmt: rp[4],
+          joinRemainder: rp[5] === 1,
+          hybridRatio: rp[6]
+        };
+      }
+    });
+
+    return {
+      id: 'exp_' + gId + '_' + eIdx + '_' + Date.now().toString(36),
+      title: item[0],
+      totalAmount: item[1],
+      date: dateFormatted,
+      splitMode: INT_TO_MODE[item[3]] || 'equal',
+      hybridSubMode: item[4] === 1 ? 'ratio' : 'equal',
+      payers: payers,
+      shares: shares,
+      rawParts: rawParts
+    };
+  });
+
+  return {
+    id: gId,
+    name: gName,
+    password: gPwd,
+    members: members,
+    expenses: expenses
+  };
+}
+
+// ==================== 雲端短代碼服務 (透過公開 JSON 暫存 API 轉換為短 ID) ====================
+function generateCloudShortCode() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  var btn = document.getElementById('btn-gen-cloud');
+  btn.innerText = '⏳ 產生中...';
+  btn.disabled = true;
+
+  var compactStr = encodeCompactGroup(grp);
+  fetch('https://jsonblob.com/api/jsonBlob', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ d: compactStr })
+  })
+  .then(function(res) {
+    var loc = res.headers.get('Location') || res.headers.get('location') || '';
+    var parts = loc.split('/');
+    var blobId = parts[parts.length - 1];
+    if (!blobId) throw new Error('No ID');
+    return blobId;
+  })
+  .then(function(blobId) {
+    state.lastCloudCode = blobId;
+    document.getElementById('cloud-code-box').className = '';
+    document.getElementById('cloud-short-code-text').innerText = blobId;
+    btn.innerText = '🔄 重新產生短代碼';
+    btn.disabled = false;
+  })
+  .catch(function() {
+    btn.innerText = '✨ 點擊產生短代碼';
+    btn.disabled = false;
+    alert('目前裝置無法連線至雲端短碼伺服器，請直接使用下方的「方式 B：精簡版離線同步碼」！');
+  });
+}
+
+function copyCloudShortCode() {
+  if (!state.lastCloudCode) return;
+  navigator.clipboard ? navigator.clipboard.writeText(state.lastCloudCode) : null;
+  alert('已複製短代碼：' + state.lastCloudCode + '\n請傳給朋友貼入「載入群組」框中即可！');
+}
+
+// ==================== 系統成員庫 ====================
+function addSystemMember() {
+  var input = document.getElementById('new-sys-member-input');
+  var raw = input.value.trim();
+  if (!raw) return;
+  var arr = raw.split(/[,，、\s]+/);
+  for (var i = 0; i < arr.length; i++) {
+    var name = arr[i].trim();
+    if (!name) continue;
+    if (!state.systemMembers.some(function(m) { return m.name === name; })) {
+      state.systemMembers.push({ id: uid('sys'), name: name });
+    }
+  }
+  input.value = '';
+  saveData();
+  renderAll();
+}
+
+function removeSystemMember(sysId) {
+  state.systemMembers = state.systemMembers.filter(function(m) { return m.id !== sysId; });
+  saveData();
+  renderAll();
+}
+
+// ==================== 群組管理 ====================
+function createGroup() {
+  var input = document.getElementById('new-group-input');
+  var name = input.value.trim();
+  if (!name) { alert('請輸入新旅遊群組名稱'); return; }
+  var gId = uid('grp');
+  state.groups.push({ id: gId, name: name, password: '', members: [], expenses: [] });
+  state.currentGroupId = gId;
+  state.showMemberPanel = true;
+  state.editingExpenseId = null;
+  input.value = '';
+  resetExpenseForm();
+  saveData();
+  renderAll();
+}
+
+function deleteCurrentGroup() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  if (!confirm('確定要刪除「' + grp.name + '」整個群組及其所有分帳紀錄嗎？')) return;
+  state.groups = state.groups.filter(function(g) { return g.id !== grp.id; });
+  state.currentGroupId = state.groups.length > 0 ? state.groups[0].id : null;
+  state.editingExpenseId = null;
+  resetExpenseForm();
+  saveData();
+  renderAll();
+}
+
+function selectGroup(gId) {
+  var grp = state.groups.find(function(g) { return g.id === gId; });
+  if (grp && grp.password && state.currentGroupId !== gId) {
+    var pwd = prompt('此群組已設定密碼，請輸入密碼解鎖：');
+    if (pwd !== grp.password) {
+      alert('密碼錯誤！');
+      return;
+    }
+  }
+  state.currentGroupId = gId;
+  state.editingExpenseId = null;
+  resetExpenseForm();
+  renderAll();
+}
+
+function toggleMemberPanel() {
+  state.showMemberPanel = !state.showMemberPanel;
+  renderGroupMembersSection();
+}
+
+function importSingleSysMember(sysId) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  var sm = state.systemMembers.find(function(m) { return m.id === sysId; });
+  if (!sm) return;
+  if (!grp.members.some(function(gm) { return gm.systemId === sm.id || gm.name === sm.name; })) {
+    grp.members.push({ id: 'gm_' + sm.id, systemId: sm.id, name: sm.name, isSystem: true });
+    syncFormWithGroup();
+    saveData();
+    renderAll();
+  }
+}
+
+function importAllSystemMembers() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  state.systemMembers.forEach(function(sm) {
+    if (!grp.members.some(function(gm) { return gm.systemId === sm.id || gm.name === sm.name; })) {
+      grp.members.push({ id: 'gm_' + sm.id, systemId: sm.id, name: sm.name, isSystem: true });
+    }
+  });
+  syncFormWithGroup();
+  saveData();
+  renderAll();
+}
+
+function addGroupMember() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  var input = document.getElementById('new-group-member-input');
+  var syncChk = document.getElementById('sync-to-sys-checkbox');
+  var raw = input.value.trim();
+  if (!raw) { alert('請輸入成員名稱'); return; }
+
+  var names = raw.split(/[,，、\s]+/);
+  for (var i = 0; i < names.length; i++) {
+    var name = names[i].trim();
+    if (!name) continue;
+    var sysId = null, isSys = false;
+    if (syncChk.checked) {
+      var existing = state.systemMembers.find(function(m) { return m.name === name; });
+      if (!existing) {
+        existing = { id: uid('sys'), name: name };
+        state.systemMembers.push(existing);
+      }
+      sysId = existing.id;
+      isSys = true;
+    }
+    grp.members.push({ id: uid('gm'), systemId: sysId, name: name, isSystem: isSys });
+  }
+
+  input.value = '';
+  syncFormWithGroup();
+  saveData();
+  renderAll();
+}
+
+function promoteToSystem(gmId) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  var gm = grp.members.find(function(m) { return m.id === gmId; });
+  if (!gm) return;
+  var existing = state.systemMembers.find(function(m) { return m.name === gm.name; });
+  if (!existing) {
+    existing = { id: uid('sys'), name: gm.name };
+    state.systemMembers.push(existing);
+  }
+  gm.systemId = existing.id;
+  gm.isSystem = true;
+  saveData();
+  renderAll();
+}
+
+function removeGroupMember(gmId) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  grp.members = grp.members.filter(function(m) { return m.id !== gmId; });
+  syncFormWithGroup();
+  saveData();
+  renderAll();
+}
+
+// ==================== 表單、編輯歷史紀錄與分帳邏輯 ====================
+function resetExpenseForm() {
+  state.editingExpenseId = null;
+  state.form = {
+    title: '',
+    totalAmount: 0,
+    date: new Date().toISOString().split('T')[0],
+    splitMode: 'equal',
+    hybridSubMode: 'equal',
+    payers: {},
+    parts: {}
+  };
+  var titleEl = document.getElementById('exp-title');
+  var totalEl = document.getElementById('exp-total');
+  var dateEl = document.getElementById('exp-date');
+  if (titleEl) titleEl.value = '';
+  if (totalEl) totalEl.value = '';
+  if (dateEl) dateEl.value = state.form.date;
+  syncFormWithGroup();
+}
+
+function syncFormWithGroup() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  if (!grp.members) grp.members = [];
+  if (!grp.expenses) grp.expenses = [];
+
+  grp.members.forEach(function(m, idx) {
+    if (!state.form.payers[m.id]) {
+      state.form.payers[m.id] = { checked: idx === 0, amount: idx === 0 ? state.form.totalAmount : 0 };
+    }
+    if (!state.form.parts[m.id]) {
+      state.form.parts[m.id] = {
+        checked: true,
+        ratio: 1,
+        exact: 0,
+        fixedAmt: 0,
+        joinRemainder: true,
+        hybridRatio: 1
+      };
+    } else if (typeof state.form.parts[m.id].joinRemainder === 'undefined') {
+      state.form.parts[m.id].joinRemainder = true;
+    }
+  });
+}
+
+function editExpense(expId) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  var exp = grp.expenses.find(function(e) { return e.id === expId; });
+  if (!exp) return;
+
+  state.editingExpenseId = exp.id;
+  state.form.title = exp.title || '';
+  state.form.totalAmount = parseFloat(exp.totalAmount) || 0;
+  state.form.date = exp.date || '';
+  state.form.splitMode = exp.splitMode || 'equal';
+  state.form.hybridSubMode = exp.hybridSubMode || 'equal';
+  state.form.payers = {};
+  state.form.parts = {};
+
+  grp.members.forEach(function(m) {
+    var paidAmt = (exp.payers && exp.payers[m.id]) ? parseFloat(exp.payers[m.id]) : 0;
+    state.form.payers[m.id] = {
+      checked: paidAmt > 0,
+      amount: paidAmt
+    };
+
+    if (exp.rawParts && exp.rawParts[m.id]) {
+      var rp = exp.rawParts[m.id];
+      state.form.parts[m.id] = {
+        checked: !!rp.checked,
+        ratio: parseFloat(rp.ratio) || 1,
+        exact: parseFloat(rp.exact) || 0,
+        fixedAmt: parseFloat(rp.fixedAmt) || 0,
+        joinRemainder: typeof rp.joinRemainder !== 'undefined' ? !!rp.joinRemainder : true,
+        hybridRatio: parseFloat(rp.hybridRatio) || 1
+      };
+    } else {
+      var shareAmt = (exp.shares && exp.shares[m.id]) ? parseFloat(exp.shares[m.id]) : 0;
+      state.form.parts[m.id] = {
+        checked: shareAmt > 0,
+        ratio: 1,
+        exact: shareAmt,
+        fixedAmt: 0,
+        joinRemainder: true,
+        hybridRatio: 1
+      };
+    }
+  });
+
+  var titleEl = document.getElementById('exp-title');
+  var totalEl = document.getElementById('exp-total');
+  var dateEl = document.getElementById('exp-date');
+  if (titleEl) titleEl.value = state.form.title;
+  if (totalEl) totalEl.value = state.form.totalAmount;
+  if (dateEl) dateEl.value = state.form.date;
+
+  renderAll();
+  var formCard = document.getElementById('expense-form-card');
+  if (formCard && formCard.scrollIntoView) {
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function cancelEditExpense() {
+  resetExpenseForm();
+  renderAll();
+}
+
+function onTitleInput(val) { state.form.title = val; }
+function onDateChange(val) { state.form.date = val; }
+
+function onTotalInput(val) {
+  var num = parseFloat(val) || 0;
+  state.form.totalAmount = num;
+  autoApplyPayerAmount();
+  updateCalculationsOnly();
+}
+
+function togglePayer(gmId) {
+  syncFormWithGroup();
+  var p = state.form.payers[gmId];
+  if (!p) return;
+  p.checked = !p.checked;
+  if (!p.checked) p.amount = 0;
+  autoApplyPayerAmount();
+  renderExpenseSection();
+}
+
+function autoApplyPayerAmount() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  var checkedPayers = grp.members.filter(function(m) { return state.form.payers[m.id] && state.form.payers[m.id].checked; });
+  if (checkedPayers.length === 1) {
+    var onlyId = checkedPayers[0].id;
+    var total = parseFloat(state.form.totalAmount) || 0;
+    state.form.payers[onlyId].amount = total;
+    var payerInput = document.getElementById('payer-amt-' + onlyId);
+    if (payerInput) payerInput.value = total || '';
+  }
+}
+
+function onPayerAmtInput(gmId, val) {
+  if (state.form.payers[gmId]) {
+    state.form.payers[gmId].amount = parseFloat(val) || 0;
+  }
+  updateCalculationsOnly();
+}
+
+function getPayersSum() {
+  var grp = getCurrentGroup();
+  if (!grp) return 0;
+  return grp.members.reduce(function(sum, m) {
+    var p = state.form.payers[m.id];
+    return sum + (p && p.checked ? (parseFloat(p.amount) || 0) : 0);
+  }, 0);
+}
+
+function togglePart(gmId) {
+  syncFormWithGroup();
+  var pt = state.form.parts[gmId];
+  if (!pt) return;
+  pt.checked = !pt.checked;
+  renderExpenseSection();
+}
+
+function toggleAllParts(boolVal) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  syncFormWithGroup();
+  grp.members.forEach(function(m) {
+    if (state.form.parts[m.id]) state.form.parts[m.id].checked = boolVal;
+  });
+  renderExpenseSection();
+}
+
+function setSplitMode(mode) {
+  state.form.splitMode = mode;
+  renderExpenseSection();
+}
+
+function setHybridSubMode(subMode) {
+  state.form.hybridSubMode = subMode;
+  renderExpenseSection();
+}
+
+function toggleJoinRemainder(gmId) {
+  var pt = state.form.parts[gmId];
+  if (!pt) return;
+  pt.joinRemainder = !pt.joinRemainder;
+  renderExpenseSection();
+}
+
+function onPartFieldInput(gmId, field, val) {
+  if (state.form.parts[gmId]) {
+    state.form.parts[gmId][field] = parseFloat(val) || 0;
+  }
+  updateCalculationsOnly();
+}
+
+function calculateCurrentShares() {
+  var shares = {};
+  var grp = getCurrentGroup();
+  if (!grp) return shares;
+  var total = parseFloat(state.form.totalAmount) || 0;
+  var list = grp.members.filter(function(m) { return state.form.parts[m.id] && state.form.parts[m.id].checked; });
+  if (list.length === 0) return shares;
+
+  var mode = state.form.splitMode;
+  if (mode === 'equal') {
+    var each = total / list.length;
+    list.forEach(function(m) { shares[m.id] = each; });
+  } else if (mode === 'ratio') {
+    var totalW = list.reduce(function(s, m) { return s + (parseFloat(state.form.parts[m.id].ratio) || 0); }, 0);
+    list.forEach(function(m) {
+      var w = parseFloat(state.form.parts[m.id].ratio) || 0;
+      shares[m.id] = totalW > 0 ? (total * (w / totalW)) : 0;
+    });
+  } else if (mode === 'exact') {
+    list.forEach(function(m) {
+      shares[m.id] = parseFloat(state.form.parts[m.id].exact) || 0;
+    });
+  } else if (mode === 'hybrid') {
+    var remList = [], fixedSum = 0;
+    list.forEach(function(m) {
+      var pt = state.form.parts[m.id];
+      var fAmt = parseFloat(pt.fixedAmt) || 0;
+      shares[m.id] = fAmt;
+      fixedSum += fAmt;
+      if (pt.joinRemainder) {
+        remList.push(m);
+      }
+    });
+
+    var remPool = total - fixedSum;
+    if (remList.length > 0) {
+      if (state.form.hybridSubMode === 'equal') {
+        var eachRem = remPool / remList.length;
+        remList.forEach(function(m) {
+          shares[m.id] = (shares[m.id] || 0) + eachRem;
+        });
+      } else {
+        var remW = remList.reduce(function(s, m) { return s + (parseFloat(state.form.parts[m.id].hybridRatio) || 0); }, 0);
+        remList.forEach(function(m) {
+          var w = parseFloat(state.form.parts[m.id].hybridRatio) || 0;
+          var addShare = remW > 0 ? (remPool * (w / remW)) : 0;
+          shares[m.id] = (shares[m.id] || 0) + addShare;
+        });
+      }
+    }
+  }
+  return shares;
+}
+
+function saveExpense() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  syncFormWithGroup();
+
+  var title = state.form.title.trim();
+  var total = parseFloat(state.form.totalAmount) || 0;
+  if (!title) { alert('請輸入花費項目名稱！'); return; }
+  if (total <= 0) { alert('請輸入大於 0 的花費總金額！'); return; }
+
+  var pSum = getPayersSum();
+  if (Math.abs(pSum - total) >= 0.1) {
+    alert('付款人金額加總 ($' + fmt(pSum) + ') 與總金額 ($' + fmt(total) + ') 不一致！');
+    return;
+  }
+
+  var shares = calculateCurrentShares();
+  var sSum = Object.keys(shares).reduce(function(s, k) { return s + shares[k]; }, 0);
+  if (Math.abs(sSum - total) >= 0.1) {
+    alert('分攤加總 ($' + fmt(sSum) + ') 與總金額 ($' + fmt(total) + ') 不一致！\n(若是模式4，請確認至少有勾選1人分攤剩餘金額)');
+    return;
+  }
+
+  var payersSaved = {};
+  grp.members.forEach(function(m) {
+    var p = state.form.payers[m.id];
+    if (p && p.checked && p.amount > 0) payersSaved[m.id] = parseFloat(p.amount);
+  });
+
+  var sharesSaved = {};
+  Object.keys(shares).forEach(function(k) { if (shares[k] > 0) sharesSaved[k] = shares[k]; });
+
+  var rawPartsCopy = JSON.parse(JSON.stringify(state.form.parts));
+
+  var recordObj = {
+    id: state.editingExpenseId ? state.editingExpenseId : uid('exp'),
+    title: title,
+    totalAmount: total,
+    date: state.form.date || '',
+    splitMode: state.form.splitMode,
+    hybridSubMode: state.form.hybridSubMode,
+    payers: payersSaved,
+    shares: sharesSaved,
+    rawParts: rawPartsCopy
+  };
+
+  if (state.editingExpenseId) {
+    var idx = grp.expenses.findIndex(function(e) { return e.id === state.editingExpenseId; });
+    if (idx >= 0) {
+      grp.expenses[idx] = recordObj;
+    } else {
+      grp.expenses.unshift(recordObj);
+    }
+  } else {
+    grp.expenses.unshift(recordObj);
+  }
+
+  resetExpenseForm();
+  saveData();
+  renderAll();
+}
+
+function deleteExpense(expId) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  if (!confirm('確定要刪除這筆花費紀錄嗎？')) return;
+  if (state.editingExpenseId === expId) {
+    resetExpenseForm();
+  }
+  grp.expenses = grp.expenses.filter(function(e) { return e.id !== expId; });
+  saveData();
+  renderAll();
+}
+
+// ==================== 跨裝置短代碼 & 壓縮碼同步 ====================
+function openShareModal() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  document.getElementById('share-export-section').className = '';
+  document.getElementById('cloud-code-box').className = 'hidden';
+  document.getElementById('modal-group-pwd').value = grp.password || '';
+  document.getElementById('modal-export-data').value = encodeCompactGroup(grp);
+  document.getElementById('modal-import-data').value = '';
+  document.getElementById('share-modal').className = 'modal-overlay';
+}
+
+function openImportNewModal() {
+  document.getElementById('share-export-section').className = 'hidden';
+  document.getElementById('modal-import-data').value = '';
+  document.getElementById('share-modal').className = 'modal-overlay';
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').className = 'modal-overlay hidden';
+}
+
+function updateGroupPassword(pwd) {
+  var grp = getCurrentGroup();
+  if (grp) {
+    grp.password = pwd.trim();
+    document.getElementById('modal-export-data').value = encodeCompactGroup(grp);
+    saveData();
+  }
+}
+
+function copyExportData() {
+  var txt = document.getElementById('modal-export-data');
+  txt.select();
+  document.execCommand('copy');
+  alert('已複製精簡同步碼（長度已縮短 75%）！傳給同行夥伴貼上後即可同步。');
+}
+
+function applyImportedGroupObject(importedGrp) {
+  if (!importedGrp || !importedGrp.id || !Array.isArray(importedGrp.members)) {
+    throw new Error('格式錯誤');
+  }
+  if (!Array.isArray(importedGrp.expenses)) {
+    importedGrp.expenses = [];
+  }
+
+  importedGrp.members.forEach(function(gm) {
+    if (gm.isSystem && !state.systemMembers.some(function(sm) { return sm.name === gm.name; })) {
+      var newSysId = gm.systemId || uid('sys');
+      state.systemMembers.push({ id: newSysId, name: gm.name });
+    }
+  });
+
+  var idx = state.groups.findIndex(function(g) { return g.id === importedGrp.id; });
+  if (idx >= 0) {
+    state.groups[idx] = importedGrp;
+  } else {
+    state.groups.push(importedGrp);
+  }
+
+  state.currentGroupId = importedGrp.id;
+  resetExpenseForm();
+  saveData();
+  renderAll();
+  closeShareModal();
+  alert('🎉 成功同步【' + importedGrp.name + '】群組資料！您現在可以直接在此裝置上新增或修改花費了。');
+}
+
+function importGroupData() {
+  var raw = document.getElementById('modal-import-data').value.trim();
+  if (!raw) { alert('請先輸入短代碼或貼上精簡同步碼'); return; }
+
+  // 判斷是否為雲端短代碼（不含 S1: 與 {，且長度較短）
+  if (raw.indexOf('S1:') !== 0 && raw.charAt(0) !== '{' && raw.length < 45) {
+    var btn = document.getElementById('btn-import-action');
+    btn.innerText = '⏳ 正在從雲端讀取短代碼...';
+    btn.disabled = true;
+    fetch('https://jsonblob.com/api/jsonBlob/' + encodeURIComponent(raw))
+      .then(function(res) {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then(function(data) {
+        btn.innerText = '📥 立即載入並開啟記帳功能';
+        btn.disabled = false;
+        var grpObj = decodeCompactGroup(data.d);
+        applyImportedGroupObject(grpObj);
+      })
+      .catch(function() {
+        btn.innerText = '📥 立即載入並開啟記帳功能';
+        btn.disabled = false;
+        alert('找不到此雲端短代碼，或網路無法連線。請確認代碼無誤，或改用「方式 B：精簡同步碼」！');
+      });
+    return;
+  }
+
+  try {
+    var importedGrp = decodeCompactGroup(raw);
+    applyImportedGroupObject(importedGrp);
+  } catch (e) {
+    alert('同步碼格式不正確，請確認是否完整複製！');
+  }
+}
+
+// ==================== 畫面渲染 ====================
+function switchTab(t) {
+  state.tab = t;
+  document.getElementById('view-groups').className = t === 'groups' ? '' : 'hidden';
+  document.getElementById('view-sys').className = t === 'sys' ? 'card' : 'card hidden';
+  document.getElementById('tab-groups-btn').className = t === 'groups' ? 'btn-outline active' : 'btn-outline';
+  document.getElementById('tab-sys-btn').className = t === 'sys' ? 'btn-outline active' : 'btn-outline';
+  renderAll();
+}
+
+function renderAll() {
+  syncFormWithGroup();
+  document.getElementById('sys-count').innerText = state.systemMembers.length;
+  document.getElementById('grp-count').innerText = state.groups.length;
+  renderSysMembers();
+  renderGroupTabs();
+
+  var grp = getCurrentGroup();
+  var emptyGuide = document.getElementById('empty-group-guide');
+  var grpContent = document.getElementById('group-content');
+  if (!grp) {
+    emptyGuide.className = 'card';
+    grpContent.className = 'hidden';
+    return;
+  } else {
+    emptyGuide.className = 'card hidden';
+    grpContent.className = '';
+  }
+
+  renderGroupMembersSection();
+  renderExpenseSection();
+  renderSettlementAndHistory();
+}
+
+function renderSysMembers() {
+  var box = document.getElementById('sys-members-list');
+  var html = '';
+  state.systemMembers.forEach(function(m, idx) {
+    html += '<div class="chip" style="cursor:default;"><span>' + (idx + 1) + '. <strong>' + m.name + '</strong></span>' +
+      '<button class="btn-danger" onclick="removeSystemMember(\'' + m.id + '\')">✕</button></div>';
+  });
+  box.innerHTML = html || '<div class="sub">目前尚無系統成員，請在上方輸入新增（無人數上限）。</div>';
+}
+
+function renderGroupTabs() {
+  var box = document.getElementById('group-tabs-list');
+  var html = '';
+  state.groups.forEach(function(g) {
+    var active = g.id === state.currentGroupId ? 'active' : '';
+    var lockIcon = g.password ? '🔒 ' : '';
+    html += '<button class="btn-outline ' + active + '" onclick="selectGroup(\'' + g.id + '\')">' +
+      lockIcon + g.name + ' (' + g.members.length + '人)</button>';
+  });
+  box.innerHTML = html || '<span class="sub" style="margin:0;">請先建立第一個旅遊群組 👉</span>';
+}
+
+function renderGroupMembersSection() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  document.getElementById('current-group-title').innerText = '📍 【' + grp.name + '】群組成員 (' + grp.members.length + '人)';
+  document.getElementById('member-manage-panel').className = state.showMemberPanel ? 'box' : 'box hidden';
+
+  var availBox = document.getElementById('available-sys-members');
+  var availHtml = '';
+  state.systemMembers.forEach(function(sm) {
+    if (!grp.members.some(function(gm) { return gm.systemId === sm.id || gm.name === sm.name; })) {
+      availHtml += '<button class="btn-outline btn-sm" onclick="importSingleSysMember(\'' + sm.id + '\')">＋ ' + sm.name + '</button>';
+    }
+  });
+  availBox.innerHTML = availHtml || '<span class="sub">系統成員庫為空，或皆已在此群組中</span>';
+
+  var listBox = document.getElementById('group-members-list');
+  var listHtml = '';
+  grp.members.forEach(function(gm) {
+    var badge = gm.isSystem
+      ? '<span class="badge">系統成員</span>'
+      : '<span class="badge badge-local">群組獨立</span> <button class="btn-outline btn-sm" style="padding:2px 6px; font-size:11px;" onclick="promoteToSystem(\'' + gm.id + '\')">歸納回系統</button>';
+    listHtml += '<div class="chip" style="cursor:default;"><strong>' + gm.name + '</strong> ' + badge +
+      '<button class="btn-danger" onclick="removeGroupMember(\'' + gm.id + '\')">✕</button></div>';
+  });
+  listBox.innerHTML = listHtml || '<div class="sub">此群組尚無成員，請點擊上方「➕ 新增 / 拉入成員」建立名單。</div>';
+}
+
+function renderExpenseSection() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+
+  var formCard = document.getElementById('expense-form-card');
+  var headerTitle = document.getElementById('form-header-title');
+  var cancelBtnTop = document.getElementById('cancel-edit-btn');
+  var cancelBtnBottom = document.getElementById('cancel-edit-btn-bottom');
+  var submitBtn = document.getElementById('submit-expense-btn');
+
+  if (state.editingExpenseId) {
+    formCard.className = 'card editing-mode';
+    headerTitle.innerHTML = '✏️ 正在修改歷史花費：<span style="color:#d97706;">' + (state.form.title || '未命名') + '</span>';
+    cancelBtnTop.className = 'btn-outline btn-sm';
+    cancelBtnBottom.className = 'btn-outline';
+    submitBtn.className = 'btn-warning';
+    submitBtn.innerText = '💾 儲存修改';
+  } else {
+    formCard.className = 'card';
+    headerTitle.innerText = '➕ 新增一筆花費紀錄';
+    cancelBtnTop.className = 'btn-outline btn-sm hidden';
+    cancelBtnBottom.className = 'btn-outline hidden';
+    submitBtn.className = 'btn-primary';
+    submitBtn.innerText = '💾 儲存此筆花費';
+  }
+
+  var pChips = '', pInputs = '';
+  grp.members.forEach(function(m) {
+    var p = state.form.payers[m.id] || { checked: false, amount: 0 };
+    var cls = p.checked ? 'chip checked-payer' : 'chip';
+    pChips += '<div class="' + cls + '" onclick="togglePayer(\'' + m.id + '\')">' + (p.checked ? '✓ ' : '＋ ') + m.name + '</div>';
+    if (p.checked) {
+      pInputs += '<div class="between" style="background:#fff; padding:6px 10px; border-radius:8px; border:1px solid #cbd5e1;">' +
+        '<span style="font-size:13px; font-weight:600;">' + m.name + ' 付了 $</span>' +
+        '<input type="number" id="payer-amt-' + m.id + '" style="width:95px;" value="' + (p.amount || '') + '" oninput="onPayerAmtInput(\'' + m.id + '\', this.value)"></div>';
+    }
+  });
+  document.getElementById('payers-chips').innerHTML = pChips || '<span class="sub">請先在上方新增群組成員</span>';
+  document.getElementById('payers-inputs').innerHTML = pInputs;
+
+  var partChips = '';
+  grp.members.forEach(function(m) {
+    var pt = state.form.parts[m.id] || { checked: false };
+    var cls = pt.checked ? 'chip checked-part' : 'chip';
+    partChips += '<div class="' + cls + '" onclick="togglePart(\'' + m.id + '\')">' + (pt.checked ? '☑ ' : '☐ ') + m.name + '</div>';
+  });
+  document.getElementById('parts-chips').innerHTML = partChips || '<span class="sub">請先在上方新增群組成員</span>';
+
+  var modes = ['equal', 'ratio', 'exact', 'hybrid'];
+  modes.forEach(function(mKey) {
+    document.getElementById('mode-' + mKey).className = state.form.splitMode === mKey ? 'mode-btn active' : 'mode-btn';
+  });
+
+  var hybridBar = document.getElementById('hybrid-sub-bar');
+  hybridBar.className = state.form.splitMode === 'hybrid' ? '' : 'hidden';
+  document.getElementById('hybrid-sub-equal').className = state.form.hybridSubMode === 'equal' ? 'btn-outline btn-sm active' : 'btn-outline btn-sm';
+  document.getElementById('hybrid-sub-ratio').className = state.form.hybridSubMode === 'ratio' ? 'btn-outline btn-sm active' : 'btn-outline btn-sm';
+
+  var checkedParts = grp.members.filter(function(m) { return state.form.parts[m.id] && state.form.parts[m.id].checked; });
+  var tblBox = document.getElementById('split-table-container');
+  if (checkedParts.length === 0) {
+    tblBox.innerHTML = '<div class="status-err" style="padding:10px 0;">請至少勾選 1 位參與成員</div>';
+    updateCalculationsOnly();
+    return;
+  }
+
+  var mode = state.form.splitMode;
+  var rowsHtml = '';
+
+  if (mode !== 'hybrid') {
+    rowsHtml = '<table><thead><tr><th>參與成員</th><th>分攤設定</th><th class="text-right">應分擔金額</th></tr></thead><tbody>';
+    checkedParts.forEach(function(m) {
+      var pt = state.form.parts[m.id];
+      var settingCell = '';
+      if (mode === 'equal') {
+        settingCell = '<span class="sub">均分 (1/' + checkedParts.length + ')</span>';
+      } else if (mode === 'ratio') {
+        settingCell = '<div class="row"><input type="number" style="width:70px;" value="' + pt.ratio + '" oninput="onPartFieldInput(\'' + m.id + '\', \'ratio\', this.value)"> <span>份</span></div>';
+      } else if (mode === 'exact') {
+        settingCell = '<div class="row"><span>$</span><input type="number" style="width:100px;" value="' + (pt.exact || '') + '" oninput="onPartFieldInput(\'' + m.id + '\', \'exact\', this.value)"></div>';
+      }
+      rowsHtml += '<tr><td><strong>' + m.name + '</strong></td><td>' + settingCell + '</td><td class="text-right"><strong id="calc-share-' + m.id + '" style="color:#4f46e5;">$0</strong></td></tr>';
+    });
+    rowsHtml += '</tbody></table>';
+  } else {
+    rowsHtml = '<table><thead><tr><th>參與成員</th><th>① 先付固定金額 ($XX)</th><th>② 勾選參與剩餘金額分攤</th><th class="text-right">最終應分擔總計</th></tr></thead><tbody>';
+    checkedParts.forEach(function(m) {
+      var pt = state.form.parts[m.id];
+      var fixedInputHtml = '<div class="row"><span>$</span><input type="number" style="width:85px;" placeholder="0" value="' + (pt.fixedAmt || '') + '" oninput="onPartFieldInput(\'' + m.id + '\', \'fixedAmt\', this.value)"></div>';
+      
+      var joinChkAttr = pt.joinRemainder ? 'checked' : '';
+      var remHtml = '<div class="row"><label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-weight:600; color:' + (pt.joinRemainder ? '#059669' : '#64748b') + ';">' +
+        '<input type="checkbox" ' + joinChkAttr + ' onchange="toggleJoinRemainder(\'' + m.id + '\')"> 參與分攤剩餘</label>';
+      if (pt.joinRemainder && state.form.hybridSubMode === 'ratio') {
+        remHtml += '<input type="number" style="width:55px;" value="' + pt.hybridRatio + '" oninput="onPartFieldInput(\'' + m.id + '\', \'hybridRatio\', this.value)"><span>份</span>';
+      }
+      remHtml += '</div>';
+
+      rowsHtml += '<tr>' +
+        '<td><strong>' + m.name + '</strong></td>' +
+        '<td>' + fixedInputHtml + '</td>' +
+        '<td>' + remHtml + '</td>' +
+        '<td class="text-right"><strong id="calc-share-' + m.id + '" style="color:#4f46e5;">$0</strong></td>' +
+        '</tr>';
+    });
+    rowsHtml += '</tbody></table>';
+  }
+
+  tblBox.innerHTML = rowsHtml;
+  updateCalculationsOnly();
+}
+
+function updateCalculationsOnly() {
+  var total = parseFloat(state.form.totalAmount) || 0;
+  var pSum = getPayersSum();
+  var pStatus = document.getElementById('payers-status');
+  if (pStatus) {
+    var pOk = Math.abs(pSum - total) < 0.1;
+    pStatus.className = pOk ? 'status-ok' : 'status-err';
+    pStatus.innerText = '付款總計：$' + fmt(pSum) + ' / 應為：$' + fmt(total) + (pOk ? ' ✓' : ' (差 $' + fmt(total - pSum) + ')');
+  }
+
+  var poolInfo = document.getElementById('hybrid-pool-info');
+  if (poolInfo && state.form.splitMode === 'hybrid') {
+    var grp = getCurrentGroup();
+    var fixedSum = 0;
+    if (grp) {
+      grp.members.forEach(function(m) {
+        var pt = state.form.parts[m.id];
+        if (pt && pt.checked) fixedSum += (parseFloat(pt.fixedAmt) || 0);
+      });
+    }
+    var remPool = total - fixedSum;
+    poolInfo.innerHTML = '目前先扣固定總計：<strong>$' + fmt(fixedSum) + '</strong>，待分攤剩餘金額：<strong>$' + fmt(remPool) + '</strong>';
+  }
+
+  var shares = calculateCurrentShares();
+  var sSum = 0;
+  Object.keys(shares).forEach(function(mId) {
+    sSum += shares[mId];
+    var cell = document.getElementById('calc-share-' + mId);
+    if (cell) cell.innerText = '$' + fmt(shares[mId]);
+  });
+
+  var sStatus = document.getElementById('shares-status');
+  if (sStatus) {
+    var sOk = Math.abs(sSum - total) < 0.1;
+    sStatus.className = sOk ? 'status-ok' : 'status-err';
+    sStatus.innerText = '分攤加總：$' + fmt(sSum) + ' / 總額：$' + fmt(total) + (sOk ? ' ✓' : ' (差 $' + fmt(total - sSum) + ')');
+  }
+}
+
+function renderSettlementAndHistory() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  document.getElementById('exp-count').innerText = grp.expenses.length;
+
+  var settleBox = document.getElementById('settlement-box');
+  var histBox = document.getElementById('expenses-list');
+
+  if (grp.expenses.length === 0) {
+    settleBox.innerHTML = '<div class="sub">尚無花費紀錄。</div>';
+    histBox.innerHTML = '<div class="sub">尚無明細。</div>';
+    return;
+  }
+
+  var bal = {};
+  grp.members.forEach(function(m) { bal[m.id] = { name: m.name, paid: 0, owed: 0, net: 0 }; });
+  grp.expenses.forEach(function(e) {
+    Object.keys(e.payers).forEach(function(k) { if (bal[k]) bal[k].paid += e.payers[k]; });
+    Object.keys(e.shares).forEach(function(k) { if (bal[k]) bal[k].owed += e.shares[k]; });
+  });
+
+  var debtors = [], creditors = [];
+  Object.keys(bal).forEach(function(k) {
+    bal[k].net = bal[k].paid - bal[k].owed;
+    if (bal[k].net < -0.1) debtors.push({ name: bal[k].name, amt: -bal[k].net });
+    else if (bal[k].net > 0.1) creditors.push({ name: bal[k].name, amt: bal[k].net });
+  });
+
+  var txsHtml = '<div class="box" style="margin-top:0; margin-bottom:10px;"><h3>💸 建議轉帳結算清單：</h3>';
+  var i = 0, j = 0, txCount = 0;
+  while (i < debtors.length && j < creditors.length) {
+    var pay = Math.min(debtors[i].amt, creditors[j].amt);
+    if (pay > 0.1) {
+      txCount++;
+      txsHtml += '<div style="padding:4px 0; font-size:13px;"><strong style="color:#dc2626;">' + debtors[i].name +
+        '</strong> 應給 <strong style="color:#059669;">' + creditors[j].name + '</strong>：<strong style="color:#4f46e5;">$' + fmt(pay) + '</strong></div>';
+    }
+    debtors[i].amt -= pay;
+    creditors[j].amt -= pay;
+    if (debtors[i].amt < 0.1) i++;
+    if (creditors[j].amt < 0.1) j++;
+  }
+  if (txCount === 0) txsHtml += '<div class="status-ok">🎉 所有人收支已平衡！</div>';
+  txsHtml += '</div>';
+  settleBox.innerHTML = txsHtml;
+
+  var hHtml = '';
+  grp.expenses.forEach(function(e) {
+    var isEditingThis = (state.editingExpenseId === e.id);
+    var pStr = Object.keys(e.payers).map(function(k) { return (bal[k] ? bal[k].name : '已移除成員') + '($' + fmt(e.payers[k]) + ')'; }).join('、');
+    var sStr = Object.keys(e.shares).map(function(k) { return (bal[k] ? bal[k].name : '已移除成員') + ':$' + fmt(e.shares[k]); }).join('、');
+    var dateStr = e.date ? '<span class="badge" style="background:#f1f5f9; color:#475569;">📅 ' + e.date + '</span> ' : '';
+    var boxBorderStyle = isEditingThis ? 'border: 2px solid #f59e0b; background: #fffbeb;' : '';
+
+    hHtml += '<div class="box" style="margin-top:8px; ' + boxBorderStyle + '">' +
+      '<div class="between">' +
+        '<div>' + dateStr + '<strong>' + e.title + ' — $' + fmt(e.totalAmount) + '</strong> ' +
+        (isEditingThis ? '<span class="badge badge-local">正在上方編輯中...</span>' : '') + '</div>' +
+        '<div class="row">' +
+          '<button class="btn-edit" onclick="editExpense(\'' + e.id + '\')">✏️ 編輯</button>' +
+          '<button class="btn-danger" onclick="deleteExpense(\'' + e.id + '\')">刪除</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sub" style="margin:4px 0 0 0;">付款人：' + pStr + '<br>分攤明細：' + sStr + '</div>' +
+      '</div>';
+  });
+  histBox.innerHTML = hHtml;
+}
+
+init();
+</script>
+</body>
+</html>
