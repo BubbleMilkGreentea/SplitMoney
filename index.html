@@ -347,7 +347,6 @@ var state = {
 function uid(prefix) { return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5); }
 function fmt(n) { var num = Number(n) || 0; return Math.abs(num - Math.round(num)) < 0.05 ? Math.round(num).toString() : num.toFixed(1); }
 
-// 產生好記的 6 碼大寫英數房間代碼（排除易混淆的 0, O, 1, I）
 function genShortRoomCode() {
   var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   var res = '';
@@ -400,7 +399,6 @@ function init() {
 
   syncFromCloudNow(false);
 
-  // 每 6 秒自動背景拉取雲端最新帳務
   setInterval(function() {
     syncFromCloudNow(false);
   }, 6000);
@@ -548,8 +546,7 @@ function decodeCompactGroup(codeStr) {
   };
 }
 
-// ==================== 免 CORS 預檢 (Simple Request) 雙通道雲端讀寫引擎 ====================
-// 採用 text/plain 搭配公開 Key-Value 通道 (ntfy 持久快取通道 + kvdb 備援)，100% 支援本地 file:// 網頁直接連線
+// ==================== 免 CORS 預檢 (Simple Request) 雲端讀寫引擎 ====================
 var CLOUD_TOPIC_PREFIX = 'tw_split_app_live_v6_';
 
 function cloudWriteRoom(roomId, compactStr) {
@@ -557,7 +554,6 @@ function cloudWriteRoom(roomId, compactStr) {
   var topic = CLOUD_TOPIC_PREFIX + cleanId;
   var payloadText = JSON.stringify({ d: compactStr, ts: Date.now() });
 
-  // 通道 1：使用 POST + text/plain (屬於瀏覽器 Simple Request，不會觸發 OPTIONS 預檢阻擋，也不依賴 Location Header)
   return fetch('https://ntfy.sh/' + topic, {
     method: 'POST',
     body: payloadText
@@ -571,7 +567,6 @@ function cloudReadRoom(roomId) {
   var cleanId = roomId.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
   var topic = CLOUD_TOPIC_PREFIX + cleanId;
 
-  // 讀取該房間最後一筆持久化狀態 (poll=1&since=all)
   return fetch('https://ntfy.sh/' + topic + '/json?poll=1&since=all')
     .then(function(res) {
       if (!res.ok) throw new Error('Read failed');
@@ -580,7 +575,6 @@ function cloudReadRoom(roomId) {
     .then(function(text) {
       if (!text || !text.trim()) throw new Error('Empty room');
       var lines = text.trim().split('\n');
-      // 從最後一行往回找最新的有效資料訊息
       for (var i = lines.length - 1; i >= 0; i--) {
         try {
           var msgObj = JSON.parse(lines[i]);
@@ -1297,7 +1291,6 @@ function importGroupData() {
   var raw = document.getElementById('modal-import-data').value.trim();
   if (!raw) { alert('請先輸入 6 碼房間代碼或貼上離線備份碼'); return; }
 
-  // 若輸入的是雲端房間代碼 (非 S1: 開頭且非 JSON)
   if (raw.indexOf('S1:') !== 0 && raw.charAt(0) !== '{' && raw.length < 40) {
     var cleanId = raw.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     var btn = document.getElementById('btn-import-action');
@@ -1638,7 +1631,7 @@ function renderSettlementAndHistory() {
         '<div class="row">' +
           '<button class="btn-edit" onclick="editExpense(\'' + e.id + '\')">✏️ 編輯</button>' +
           '<button class="btn-danger" onclick="deleteExpense(\'' + e.id + '\')">刪除</button>' +
-        </div>' +
+        '</div>' +
       '</div>' +
       '<div class="sub" style="margin:4px 0 0 0;">付款人：' + pStr + '<br>分攤明細：' + sStr + '</div>' +
       '</div>';
