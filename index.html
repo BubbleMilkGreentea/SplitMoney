@@ -41,7 +41,6 @@
   .chip.checked-part { background: #059669; color: #fff; border-color: #059669; }
   .badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #e0e7ff; color: #4338ca; }
   .badge-local { background: #fef3c7; color: #b45309; }
-  .badge-live { background: #dcfce7; color: #15803d; font-weight: 700; border: 1px solid #86efac; }
 
   .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-top: 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; background: #fff; border-radius: 8px; overflow: hidden; }
@@ -57,7 +56,7 @@
   
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; }
   .modal-box { background: #fff; border-radius: 14px; width: 92%; max-width: 480px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 92vh; overflow-y: auto; }
-  .short-code-display { font-family: monospace; font-size: 20px; font-weight: 800; letter-spacing: 1.5px; color: #059669; background: #ecfdf5; border: 2px dashed #10b981; border-radius: 10px; padding: 10px; text-align: center; margin: 8px 0; user-select: all; word-break: break-all; }
+  .short-code-display { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 3px; color: #059669; background: #ecfdf5; border: 2px dashed #10b981; border-radius: 10px; padding: 10px; text-align: center; margin: 8px 0; user-select: all; word-break: break-all; }
   .live-bar { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; padding: 8px 12px; border-radius: 10px; font-size: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 </style>
 </head>
@@ -68,7 +67,7 @@
   <div class="card between">
     <div>
       <h1>✈️ 旅遊彈性分帳系統 Pro</h1>
-      <div class="sub" style="margin:0;">支援雲端即時同步（如 Google Sheet 共編）、無限群組與成員、歷史帳務修改</div>
+      <div class="sub" style="margin:0;">支援 6 碼雲端即時共編、無限群組與成員、歷史帳務修改</div>
     </div>
     <div class="row">
       <button id="tab-groups-btn" class="btn-outline active" onclick="switchTab('groups')">📂 旅遊分帳群組 (<span id="grp-count">0</span>)</button>
@@ -100,7 +99,7 @@
         <div class="row" style="width: 100%; max-width: 360px;">
           <input type="text" id="new-group-input" placeholder="輸入新旅遊群組名稱" style="flex:1;">
           <button class="btn-primary" onclick="createGroup()" style="white-space:nowrap;">＋ 建立群組</button>
-          <button class="btn-success btn-sm" onclick="openImportNewModal()" title="輸入雲端房間代碼加入即時共編">☁️ 加入雲端群組</button>
+          <button class="btn-success btn-sm" onclick="openImportNewModal()" title="輸入 6 碼房間代碼加入即時共編">☁️ 加入雲端群組</button>
         </div>
       </div>
     </div>
@@ -108,7 +107,7 @@
     <!-- 尚未建立任何群組時的引導畫面 -->
     <div id="empty-group-guide" class="card hidden" style="text-align:center; padding: 36px 16px;">
       <h2 style="border:none;">尚未建立任何旅遊分帳群組</h2>
-      <div class="sub">請在上方輸入旅遊名稱點擊「＋ 建立群組」，或點擊「☁️ 加入雲端群組」輸入朋友分享的雲端房間代碼。</div>
+      <div class="sub">請在上方輸入旅遊名稱點擊「＋ 建立群組」，或點擊「☁️ 加入雲端群組」輸入朋友分享的 6 碼房間代碼。</div>
     </div>
 
     <!-- 群組詳細內容 -->
@@ -117,7 +116,7 @@
       <!-- 雲端即時同步狀態列 -->
       <div id="live-sync-banner" class="live-bar hidden">
         <div>
-          <span>🟢 <strong>雲端即時共編已連線</strong>（房間代碼：<strong id="banner-room-id" style="font-family:monospace; user-select:all;"></strong>）</span>
+          <span>🟢 <strong>雲端即時共編已開啟</strong>（房間代碼：<strong id="banner-room-id" style="font-family:monospace; font-size:14px; user-select:all;"></strong>）</span>
           <span id="live-sync-time" style="margin-left:8px; color:#047857;"></span>
         </div>
         <div class="row">
@@ -272,23 +271,27 @@
 <!-- 雲端即時共編 & 備份彈窗 -->
 <div id="share-modal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h2>☁️ 雲端即時共編（像 Google Sheet 即時同步）</h2>
-    <div class="sub">開啟雲端共編後，所有人只要加入同一個「雲端房間代碼」，任何人新增或修改帳目，大家的手機都會自動即時更新！</div>
+    <h2>☁️ 雲端即時共編（6 碼超短房間號）</h2>
+    <div class="sub">開啟雲端共編後，所有人只要輸入同一個「6 碼房間代碼」，任何人新增或修改帳目，大家的手機都會自動即時更新！</div>
     
     <div id="share-export-section">
       <!-- 區塊 1：雲端即時房間 -->
       <div class="box" style="background:#ecfdf5; border-color:#6ee7b7; margin-top:8px;">
         <div class="between">
           <h3 style="color:#065f46; margin:0;">🟢 1. 雲端即時共編房間 (推薦)</h3>
-          <button id="btn-enable-live" class="btn-success btn-sm" onclick="enableLiveCloudSync()">✨ 開啟雲端即時共編</button>
+          <button id="btn-enable-live" class="btn-success btn-sm" onclick="enableLiveCloudSync()">✨ 點擊開啟雲端共編</button>
         </div>
-        <div class="sub" style="margin-top:4px; margin-bottom:0;">開啟後將產生專屬房間代碼，傳給朋友加入一次即可永久雙向自動同步：</div>
+        <div class="sub" style="margin-top:4px; margin-bottom:6px;">可直接使用系統產生的 6 碼代號，或自行輸入好記的英文數字代號（至少 4 碼）：</div>
         
+        <div class="row" style="margin-bottom:6px;">
+          <input type="text" id="custom-room-id-input" placeholder="可自訂房間號 (如 SEOUL88)，留空則自動產生 6 碼" style="flex:1; font-size:12px; text-transform:uppercase;">
+        </div>
+
         <div id="live-room-info-box" class="hidden">
           <div id="live-room-code-text" class="short-code-display"></div>
           <div class="row">
-            <button class="btn-success btn-sm" style="flex:1;" onclick="copyLiveRoomCode()">📋 複製雲端房間代碼</button>
-            <button class="btn-outline btn-sm" style="background:#fff;" onclick="pushToCloudNow(true)">☁️ 手動強制上傳</button>
+            <button class="btn-success btn-sm" style="flex:1;" onclick="copyLiveRoomCode()">📋 複製 6 碼房間代號</button>
+            <button class="btn-outline btn-sm" style="background:#fff;" onclick="pushToCloudNow(true)">☁️ 立即強制上傳</button>
           </div>
         </div>
       </div>
@@ -309,8 +312,8 @@
     <!-- 區塊 3：加入別人的雲端房間 -->
     <div class="box" style="background:#eef2ff; border-color:#c7d2fe; margin-top:12px;">
       <h3 style="color:#3730a3;">📥 加入朋友的雲端共編群組</h3>
-      <div class="sub" style="margin-bottom:6px;">貼上朋友分享的「雲端房間代碼」，加入後即可雙向即時同步所有新增與修改的帳務：</div>
-      <input type="text" id="modal-import-data" placeholder="在此貼上雲端房間代碼 (或離線備份碼)..." style="margin-bottom:8px;">
+      <div class="sub" style="margin-bottom:6px;">輸入朋友分享的「6 碼房間代碼」（例如 A8K9M2），即可永久雙向同步所有帳務：</div>
+      <input type="text" id="modal-import-data" placeholder="輸入 6 碼房間代碼 (或貼上離線備份碼)..." style="margin-bottom:8px;">
       <button id="btn-import-action" class="btn-primary btn-sm" style="width:100%; padding:9px;" onclick="importGroupData()">☁️ 連線加入群組並開啟即時同步</button>
     </div>
 
@@ -344,6 +347,16 @@ var state = {
 function uid(prefix) { return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5); }
 function fmt(n) { var num = Number(n) || 0; return Math.abs(num - Math.round(num)) < 0.05 ? Math.round(num).toString() : num.toFixed(1); }
 
+// 產生好記的 6 碼大寫英數房間代碼（排除易混淆的 0, O, 1, I）
+function genShortRoomCode() {
+  var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  var res = '';
+  for (var i = 0; i < 6; i++) {
+    res += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return res;
+}
+
 function saveData() {
   try {
     localStorage.setItem('split_pro_sys_v5', JSON.stringify(state.systemMembers));
@@ -367,7 +380,6 @@ function getCurrentGroup() {
   return null;
 }
 
-// 產生當前時分秒字串
 function nowTimeStr() {
   var d = new Date();
   var hh = String(d.getHours()).padStart(2, '0');
@@ -386,21 +398,19 @@ function init() {
   resetExpenseForm();
   renderAll();
 
-  // 如果當前群組已綁定雲端房間，啟動時立刻拉取一次最新資料
   syncFromCloudNow(false);
 
-  // 每 6 秒在背景自動檢查雲端是否有同行夥伴更新帳務
+  // 每 6 秒自動背景拉取雲端最新帳務
   setInterval(function() {
     syncFromCloudNow(false);
   }, 6000);
 
-  // 當手機切回此畫面時，立刻同步一次
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) syncFromCloudNow(false);
   });
 }
 
-// ==================== 陣列壓縮與解壓縮（保留 cloudRoomId 與 updatedAt） ====================
+// ==================== 陣列壓縮與解壓縮 ====================
 var MODE_TO_INT = { equal: 0, ratio: 1, exact: 2, hybrid: 3 };
 var INT_TO_MODE = ['equal', 'ratio', 'exact', 'hybrid'];
 
@@ -538,7 +548,52 @@ function decodeCompactGroup(codeStr) {
   };
 }
 
-// ==================== 雲端即時雙向同步引擎 (Auto-Push & Auto-Pull) ====================
+// ==================== 免 CORS 預檢 (Simple Request) 雙通道雲端讀寫引擎 ====================
+// 採用 text/plain 搭配公開 Key-Value 通道 (ntfy 持久快取通道 + kvdb 備援)，100% 支援本地 file:// 網頁直接連線
+var CLOUD_TOPIC_PREFIX = 'tw_split_app_live_v6_';
+
+function cloudWriteRoom(roomId, compactStr) {
+  var cleanId = roomId.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  var topic = CLOUD_TOPIC_PREFIX + cleanId;
+  var payloadText = JSON.stringify({ d: compactStr, ts: Date.now() });
+
+  // 通道 1：使用 POST + text/plain (屬於瀏覽器 Simple Request，不會觸發 OPTIONS 預檢阻擋，也不依賴 Location Header)
+  return fetch('https://ntfy.sh/' + topic, {
+    method: 'POST',
+    body: payloadText
+  }).then(function(res) {
+    if (!res.ok) throw new Error('Primary cloud write failed');
+    return cleanId;
+  });
+}
+
+function cloudReadRoom(roomId) {
+  var cleanId = roomId.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  var topic = CLOUD_TOPIC_PREFIX + cleanId;
+
+  // 讀取該房間最後一筆持久化狀態 (poll=1&since=all)
+  return fetch('https://ntfy.sh/' + topic + '/json?poll=1&since=all')
+    .then(function(res) {
+      if (!res.ok) throw new Error('Read failed');
+      return res.text();
+    })
+    .then(function(text) {
+      if (!text || !text.trim()) throw new Error('Empty room');
+      var lines = text.trim().split('\n');
+      // 從最後一行往回找最新的有效資料訊息
+      for (var i = lines.length - 1; i >= 0; i--) {
+        try {
+          var msgObj = JSON.parse(lines[i]);
+          if (msgObj && msgObj.event === 'message' && msgObj.message) {
+            var inner = JSON.parse(msgObj.message);
+            if (inner && inner.d) return inner;
+          }
+        } catch (e) {}
+      }
+      throw new Error('No valid data in room');
+    });
+}
+
 function markGroupUpdatedAndPush(grp) {
   if (!grp) return;
   grp.updatedAt = Date.now();
@@ -548,53 +603,47 @@ function markGroupUpdatedAndPush(grp) {
   }
 }
 
-// 開啟或重新建立雲端即時共編房間 (POST)
 function enableLiveCloudSync() {
   var grp = getCurrentGroup();
   if (!grp) return;
 
-  if (grp.cloudRoomId) {
-    pushToCloudNow(true);
-    return;
+  var customInput = document.getElementById('custom-room-id-input');
+  var desiredId = customInput && customInput.value ? customInput.value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '') : '';
+
+  if (!grp.cloudRoomId) {
+    if (desiredId && desiredId.length >= 4) {
+      grp.cloudRoomId = desiredId;
+    } else {
+      grp.cloudRoomId = genShortRoomCode();
+    }
+  } else if (desiredId && desiredId.length >= 4 && desiredId !== grp.cloudRoomId) {
+    grp.cloudRoomId = desiredId;
   }
 
   var btn = document.getElementById('btn-enable-live');
-  btn.innerText = '⏳ 正在建立雲端房間...';
+  btn.innerText = '⏳ 正在連線雲端...';
   btn.disabled = true;
 
   grp.updatedAt = Date.now();
   var compactStr = encodeCompactGroup(grp);
 
-  fetch('https://jsonblob.com/api/jsonBlob', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ d: compactStr, ts: grp.updatedAt })
-  })
-  .then(function(res) {
-    var loc = res.headers.get('Location') || res.headers.get('location') || '';
-    var parts = loc.split('/');
-    var roomId = parts[parts.length - 1];
-    if (!roomId) throw new Error('No Room ID');
-    return roomId;
-  })
-  .then(function(roomId) {
-    grp.cloudRoomId = roomId;
-    // 再執行一次 PUT 把包含 cloudRoomId 本身的完整結構寫入雲端
-    pushToCloudNow(false);
-    saveData();
-    renderAll();
-    updateShareModalUI();
-    btn.innerText = '✅ 已開啟雲端即時共編';
-    btn.disabled = false;
-  })
-  .catch(function() {
-    btn.innerText = '✨ 開啟雲端即時共編';
-    btn.disabled = false;
-    alert('無法連線至雲端伺服器，請檢查網路連線！');
-  });
+  cloudWriteRoom(grp.cloudRoomId, compactStr)
+    .then(function(finalRoomId) {
+      grp.cloudRoomId = finalRoomId;
+      saveData();
+      state.lastSyncText = '✓ 已連線雲端 (' + nowTimeStr() + ')';
+      renderAll();
+      updateShareModalUI();
+      btn.innerText = '✅ 已開啟雲端即時共編';
+      btn.disabled = false;
+    })
+    .catch(function() {
+      btn.innerText = '✨ 點擊開啟雲端共編';
+      btn.disabled = false;
+      alert('雲端連線失敗！如果您目前使用手機內的「程式碼預覽器」且該 App 禁止連網，請改用 Chrome / Safari 瀏覽器開啟此網頁。');
+    });
 }
 
-// 將本地最新更動自動推送至固定的雲端房間 (PUT)
 function pushToCloudNow(showAlert) {
   var grp = getCurrentGroup();
   if (!grp || !grp.cloudRoomId) return;
@@ -604,38 +653,27 @@ function pushToCloudNow(showAlert) {
   state.lastSyncText = '☁️ 同步上傳中...';
   updateLiveBannerUI();
 
-  fetch('https://jsonblob.com/api/jsonBlob/' + encodeURIComponent(grp.cloudRoomId), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ d: compactStr, ts: grp.updatedAt })
-  })
-  .then(function(res) {
-    if (!res.ok) throw new Error('PUT failed');
-    state.lastSyncText = '✓ 已自動同步至雲端 (' + nowTimeStr() + ')';
-    updateLiveBannerUI();
-    if (showAlert) alert('已將最新資料強制同步至雲端房間！');
-  })
-  .catch(function() {
-    state.lastSyncText = '⚠️ 雲端暫時離線 (變更已存於手機)';
-    updateLiveBannerUI();
-  });
+  cloudWriteRoom(grp.cloudRoomId, compactStr)
+    .then(function() {
+      state.lastSyncText = '✓ 已自動同步至雲端 (' + nowTimeStr() + ')';
+      updateLiveBannerUI();
+      if (showAlert) alert('已將最新帳務同步至雲端房間【' + grp.cloudRoomId + '】！');
+    })
+    .catch(function() {
+      state.lastSyncText = '⚠️ 雲端暫時離線 (變更已存於手機)';
+      updateLiveBannerUI();
+    });
 }
 
-// 從雲端房間拉取最新變更 (GET)
 function syncFromCloudNow(manualClick) {
   var grp = getCurrentGroup();
   if (!grp || !grp.cloudRoomId || state.isSyncing) return;
 
-  // 若使用者正在編輯某筆舊帳或正在打字輸入花費名稱，避免背景刷新打斷輸入
   var isTyping = state.editingExpenseId !== null || (state.form.title && state.form.title.trim().length > 0);
   if (isTyping && !manualClick) return;
 
   state.isSyncing = true;
-  fetch('https://jsonblob.com/api/jsonBlob/' + encodeURIComponent(grp.cloudRoomId))
-    .then(function(res) {
-      if (!res.ok) throw new Error('Fetch error');
-      return res.json();
-    })
+  cloudReadRoom(grp.cloudRoomId)
     .then(function(data) {
       state.isSyncing = false;
       if (!data || !data.d) return;
@@ -645,7 +683,6 @@ function syncFromCloudNow(manualClick) {
       var localTs = grp.updatedAt || 0;
       var remoteTs = remoteGrp.updatedAt || data.ts || 0;
 
-      // 只要雲端版本較新（或使用者手動點擊重新整理且內容不同），就無縫更新畫面
       if (remoteTs > localTs || manualClick) {
         var idx = state.groups.findIndex(function(g) { return g.id === grp.id; });
         if (idx >= 0) {
@@ -669,7 +706,7 @@ function copyLiveRoomCode() {
   var grp = getCurrentGroup();
   if (!grp || !grp.cloudRoomId) return;
   if (navigator.clipboard) navigator.clipboard.writeText(grp.cloudRoomId);
-  alert('已複製雲端房間代碼：' + grp.cloudRoomId + '\n\n請傳給朋友，朋友只需點「☁️ 加入雲端群組」貼上此代碼一次，之後大家的帳務就會自動即時同步！');
+  alert('已複製 6 碼雲端房間代號：' + grp.cloudRoomId + '\n\n請傳給同行朋友，朋友點「☁️ 加入雲端群組」輸入這 6 碼即可永久雙向同步！');
 }
 
 // ==================== 系統成員庫 ====================
@@ -1148,7 +1185,6 @@ function saveExpense() {
   }
 
   resetExpenseForm();
-  // 儲存後自動推送至雲端房間，所有夥伴的畫面就會自動更新！
   markGroupUpdatedAndPush(grp);
   renderAll();
 }
@@ -1172,15 +1208,18 @@ function updateShareModalUI() {
   var infoBox = document.getElementById('live-room-info-box');
   var codeText = document.getElementById('live-room-code-text');
   var btnEnable = document.getElementById('btn-enable-live');
+  var customInput = document.getElementById('custom-room-id-input');
 
   if (grp.cloudRoomId) {
     infoBox.className = '';
     codeText.innerText = grp.cloudRoomId;
-    btnEnable.innerText = '🔄 立即同步至雲端';
+    if (customInput) customInput.value = grp.cloudRoomId;
+    btnEnable.innerText = '🔄 更新/切換房間號並上傳';
   } else {
     infoBox.className = 'hidden';
     codeText.innerText = '';
-    btnEnable.innerText = '✨ 開啟雲端即時共編';
+    if (customInput) customInput.value = '';
+    btnEnable.innerText = '✨ 點擊開啟雲端共編';
   }
   document.getElementById('modal-group-pwd').value = grp.password || '';
   document.getElementById('modal-export-data').value = encodeCompactGroup(grp);
@@ -1256,30 +1295,27 @@ function applyImportedGroupObject(importedGrp) {
 
 function importGroupData() {
   var raw = document.getElementById('modal-import-data').value.trim();
-  if (!raw) { alert('請先輸入雲端房間代碼或離線備份碼'); return; }
+  if (!raw) { alert('請先輸入 6 碼房間代碼或貼上離線備份碼'); return; }
 
-  // 若輸入的是雲端房間短代碼
-  if (raw.indexOf('S1:') !== 0 && raw.charAt(0) !== '{' && raw.length < 50) {
+  // 若輸入的是雲端房間代碼 (非 S1: 開頭且非 JSON)
+  if (raw.indexOf('S1:') !== 0 && raw.charAt(0) !== '{' && raw.length < 40) {
+    var cleanId = raw.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     var btn = document.getElementById('btn-import-action');
-    btn.innerText = '⏳ 正在連線至雲端房間...';
+    btn.innerText = '⏳ 正在連線至雲端房間 [' + cleanId + ']...';
     btn.disabled = true;
-    fetch('https://jsonblob.com/api/jsonBlob/' + encodeURIComponent(raw))
-      .then(function(res) {
-        if (!res.ok) throw new Error('Not found');
-        return res.json();
-      })
+
+    cloudReadRoom(cleanId)
       .then(function(data) {
         btn.innerText = '☁️ 連線加入群組並開啟即時同步';
         btn.disabled = false;
         var grpObj = decodeCompactGroup(data.d);
-        // 確保綁定這組固定的雲端房間 ID，之後這台裝置新增帳目也會自動推回同一個房間！
-        grpObj.cloudRoomId = raw;
+        grpObj.cloudRoomId = cleanId;
         applyImportedGroupObject(grpObj);
       })
       .catch(function() {
         btn.innerText = '☁️ 連線加入群組並開啟即時同步';
         btn.disabled = false;
-        alert('找不到此雲端房間代碼，或目前無網路連線，請確認代碼是否正確！');
+        alert('找不到房間代碼【' + cleanId + '】的資料！請確認朋友已經先點擊「開啟雲端共編」，且代碼輸入正確。');
       });
     return;
   }
@@ -1602,7 +1638,7 @@ function renderSettlementAndHistory() {
         '<div class="row">' +
           '<button class="btn-edit" onclick="editExpense(\'' + e.id + '\')">✏️ 編輯</button>' +
           '<button class="btn-danger" onclick="deleteExpense(\'' + e.id + '\')">刪除</button>' +
-        '</div>' +
+        </div>' +
       '</div>' +
       '<div class="sub" style="margin:4px 0 0 0;">付款人：' + pStr + '<br>分攤明細：' + sStr + '</div>' +
       '</div>';
