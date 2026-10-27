@@ -6,13 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="旅遊分帳">
-<title>旅遊彈性分帳系統 Pro (雲端即時同步版)</title>
+<title>旅遊彈性分帳系統 Pro</title>
 <style>
   * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; }
   body { margin: 0; padding: 12px; background: #f1f5f9; color: #1e293b; padding-bottom: 60px; }
-  .container { max-width: 820px; margin: 0 auto; }
+  .container { max-width: 840px; margin: 0 auto; }
   .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
   .card.editing-mode { border: 2px solid #f59e0b; background: #fffbeb; }
+  .card.archived-mode { border: 2px solid #64748b; background: #f8fafc; }
   h1 { font-size: 20px; margin: 0 0 6px 0; color: #4f46e5; }
   h2 { font-size: 16px; margin: 0 0 10px 0; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
   h3 { font-size: 14px; margin: 0 0 8px 0; color: #334155; }
@@ -21,6 +22,7 @@
   .between { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
   
   button { border: none; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-primary { background: #4f46e5; color: #fff; }
   .btn-primary:active { background: #4338ca; }
   .btn-warning { background: #d97706; color: #fff; }
@@ -29,6 +31,8 @@
   .btn-success { background: #059669; color: #fff; }
   .btn-danger { background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 12px; }
   .btn-edit { background: #fef3c7; color: #b45309; padding: 4px 10px; font-size: 12px; border: 1px solid #fde68a; }
+  .btn-archive { background: #e2e8f0; color: #334155; padding: 5px 10px; font-size: 12px; }
+  .btn-undo { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; padding: 5px 10px; font-size: 12px; }
   .btn-sm { padding: 5px 9px; font-size: 12px; }
 
   input[type="text"], input[type="number"], input[type="date"], input[type="password"] {
@@ -39,8 +43,11 @@
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 13px; border: 1px solid #cbd5e1; background: #f8fafc; cursor: pointer; user-select: none; }
   .chip.checked-payer { background: #4f46e5; color: #fff; border-color: #4f46e5; }
   .chip.checked-part { background: #059669; color: #fff; border-color: #059669; }
+  .chip.claimed-me { border: 2px solid #4f46e5; background: #eef2ff; }
   .badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #e0e7ff; color: #4338ca; }
   .badge-local { background: #fef3c7; color: #b45309; }
+  .badge-me { background: #4f46e5; color: #fff; font-weight: 700; }
+  .badge-actor { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 600; }
 
   .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-top: 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; background: #fff; border-radius: 8px; overflow: hidden; }
@@ -58,6 +65,9 @@
   .modal-box { background: #fff; border-radius: 14px; width: 92%; max-width: 480px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 92vh; overflow-y: auto; }
   .short-code-display { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 3px; color: #059669; background: #ecfdf5; border: 2px dashed #10b981; border-radius: 10px; padding: 10px; text-align: center; margin: 8px 0; user-select: all; word-break: break-all; }
   .live-bar { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; padding: 8px 12px; border-radius: 10px; font-size: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .archive-banner { background: #f1f5f9; border: 2px dashed #64748b; color: #334155; padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .log-item { font-size: 12px; padding: 7px 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .log-item:last-child { border-bottom: none; }
 </style>
 </head>
 <body>
@@ -67,15 +77,16 @@
   <div class="card between">
     <div>
       <h1>✈️ 旅遊彈性分帳系統 Pro</h1>
-      <div class="sub" style="margin:0;">支援 6 碼雲端即時共編、無限群組與成員、歷史帳務修改</div>
+      <div class="sub" style="margin:0;">支援免登入認領身分、異動紀錄與復原、封存收藏 (30天未看自動清理)</div>
     </div>
     <div class="row">
-      <button id="tab-groups-btn" class="btn-outline active" onclick="switchTab('groups')">📂 旅遊分帳群組 (<span id="grp-count">0</span>)</button>
-      <button id="tab-sys-btn" class="btn-outline" onclick="switchTab('sys')">👥 系統總成員庫 (<span id="sys-count">0</span>)</button>
+      <button id="tab-groups-btn" class="btn-outline active" onclick="switchTab('groups')">📂 進行中群組 (<span id="grp-active-count">0</span>)</button>
+      <button id="tab-archived-btn" class="btn-outline" onclick="switchTab('archived')">📦 已封存收藏 (<span id="grp-archived-count">0</span>)</button>
+      <button id="tab-sys-btn" class="btn-outline" onclick="switchTab('sys')">👥 系統成員庫 (<span id="sys-count">0</span>)</button>
     </div>
   </div>
 
-  <!-- 分頁 1：系統總成員庫 -->
+  <!-- ==================== 分頁 1：系統總成員庫 ==================== -->
   <div id="view-sys" class="card hidden">
     <div class="between">
       <div>
@@ -90,24 +101,27 @@
     <div id="sys-members-list" class="row"></div>
   </div>
 
-  <!-- 分頁 2：旅遊群組與分帳 -->
+  <!-- ==================== 分頁 2：旅遊群組 (進行中 / 已封存) ==================== -->
   <div id="view-groups">
     <!-- 群組切換與建立 -->
     <div class="card">
       <div class="between">
         <div class="row" id="group-tabs-list"></div>
-        <div class="row" style="width: 100%; max-width: 360px;">
+        <div id="create-group-bar" class="row" style="width: 100%; max-width: 360px;">
           <input type="text" id="new-group-input" placeholder="輸入新旅遊群組名稱" style="flex:1;">
           <button class="btn-primary" onclick="createGroup()" style="white-space:nowrap;">＋ 建立群組</button>
           <button class="btn-success btn-sm" onclick="openImportNewModal()" title="輸入 6 碼房間代碼加入即時共編">☁️ 加入雲端群組</button>
         </div>
       </div>
+      <div id="archived-tab-hint" class="sub hidden" style="margin-top:8px; margin-bottom:0; color:#b45309;">
+        💡 <strong>自動清理機制說明：</strong>已封存的群組若「連續超過 30 天」都未點進來查看，系統將自動永久刪除；只要點進來查看過，倒數計時就會自動重置為 30 天！
+      </div>
     </div>
 
-    <!-- 尚未建立任何群組時的引導畫面 -->
+    <!-- 尚未選擇或無群組時的引導畫面 -->
     <div id="empty-group-guide" class="card hidden" style="text-align:center; padding: 36px 16px;">
-      <h2 style="border:none;">尚未建立任何旅遊分帳群組</h2>
-      <div class="sub">請在上方輸入旅遊名稱點擊「＋ 建立群組」，或點擊「☁️ 加入雲端群組」輸入朋友分享的 6 碼房間代碼。</div>
+      <h2 id="empty-guide-title" style="border:none;">尚未建立任何旅遊分帳群組</h2>
+      <div id="empty-guide-desc" class="sub">請在上方輸入旅遊名稱點擊「＋ 建立群組」，或點擊「☁️ 加入雲端群組」輸入朋友分享的 6 碼房間代碼。</div>
     </div>
 
     <!-- 群組詳細內容 -->
@@ -125,13 +139,30 @@
         </div>
       </div>
 
-      <!-- A. 群組成員管理與協同分享 -->
+      <!-- 已封存狀態提示橫幅 -->
+      <div id="archived-status-banner" class="archive-banner hidden">
+        <div>
+          <div style="font-weight:700; font-size:14px;">📦 此旅遊群組已「封存結案」（唯讀收藏模式）</div>
+          <div id="archived-countdown-text" style="font-size:12px; color:#475569; margin-top:2px;"></div>
+        </div>
+        <div class="row">
+          <button class="btn-primary btn-sm" onclick="toggleArchiveGroup(false)">📤 解除封存（恢復編輯）</button>
+          <button class="btn-danger" onclick="deleteCurrentGroup()">永久刪除</button>
+        </div>
+      </div>
+
+      <!-- A. 群組成員管理與「認領身分」 -->
       <div class="card">
         <div class="between">
-          <h2 id="current-group-title" style="border:none; margin:0; padding:0;">📍 群組成員</h2>
+          <div>
+            <h2 id="current-group-title" style="border:none; margin:0; padding:0;">📍 群組成員</h2>
+            <div id="claimed-identity-hint" class="sub" style="margin:4px 0 0 0;"></div>
+          </div>
           <div class="row">
-            <button id="btn-open-cloud-modal" class="btn-success btn-sm" onclick="openShareModal()">☁️ 雲端即時共編設定</button>
-            <button class="btn-outline btn-sm" onclick="toggleMemberPanel()">➕ 新增 / 拉入成員</button>
+            <button id="btn-undo-top" class="btn-undo" onclick="undoLastAction()" disabled>↩️ 復原上一步</button>
+            <button class="btn-success btn-sm" onclick="openShareModal()">☁️ 雲端共編設定</button>
+            <button id="btn-toggle-member-panel" class="btn-outline btn-sm" onclick="toggleMemberPanel()">➕ 新增 / 拉入成員</button>
+            <button id="btn-archive-group" class="btn-archive" onclick="toggleArchiveGroup(true)">📦 封存結案</button>
             <button class="btn-danger" onclick="deleteCurrentGroup()">刪除群組</button>
           </div>
         </div>
@@ -161,10 +192,13 @@
         <div id="group-members-list" class="row" style="margin-top: 12px;"></div>
       </div>
 
-      <!-- B. 新增 / 編輯花費與分帳設定 -->
+      <!-- B. 新增 / 編輯花費與分帳設定 (封存時自動隱藏) -->
       <div id="expense-form-card" class="card">
         <div class="between" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px;">
-          <h2 id="form-header-title" style="border:none; margin:0; padding:0;">➕ 新增一筆花費紀錄</h2>
+          <div>
+            <h2 id="form-header-title" style="border:none; margin:0; padding:0;">➕ 新增一筆花費紀錄</h2>
+            <div id="form-actor-badge" class="sub" style="margin:2px 0 0 0; color:#4f46e5; font-weight:600;"></div>
+          </div>
           <button id="cancel-edit-btn" class="btn-outline btn-sm hidden" onclick="cancelEditExpense()">✕ 取消編輯（返回新增模式）</button>
         </div>
 
@@ -254,15 +288,30 @@
         </div>
       </div>
 
-      <!-- C. 結算與歷史 -->
+      <!-- C. 結算與歷史明細 -->
       <div class="card">
         <h2>🧮 群組結算建議（誰該給誰多少錢）</h2>
         <div id="settlement-box"></div>
       </div>
 
       <div class="card">
-        <h2>🧾 歷史花費明細 (<span id="exp-count">0</span> 筆) — <span style="font-size:12px; font-weight:normal; color:#64748b;">點擊「✏️ 編輯」即可修改已存紀錄</span></h2>
+        <div class="between" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px;">
+          <h2 style="border:none; margin:0; padding:0;">🧾 歷史花費明細 (<span id="exp-count">0</span> 筆)</h2>
+          <button id="btn-undo-exp-header" class="btn-undo" onclick="undoLastAction()" disabled>↩️ 復原上一步操作</button>
+        </div>
         <div id="expenses-list"></div>
+      </div>
+
+      <!-- D. 異動紀錄 (操作日誌) 與復原區 -->
+      <div class="card">
+        <div class="between" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 8px;">
+          <div>
+            <h2 style="border:none; margin:0; padding:0;">📜 帳務異動紀錄（操作日誌）</h2>
+            <div class="sub" style="margin:2px 0 0 0;">自動記錄誰新增、修改、刪除了哪筆分帳；若誤刪或改錯可隨時點擊「↩️ 復原上一步」還原。</div>
+          </div>
+          <button id="btn-undo-log-header" class="btn-undo" onclick="undoLastAction()" disabled>↩️ 復原上一步</button>
+        </div>
+        <div id="logs-list" class="box" style="margin-top:0; padding:4px 8px; max-height:260px; overflow-y:auto;"></div>
       </div>
     </div>
   </div>
@@ -275,7 +324,6 @@
     <div class="sub">開啟雲端共編後，所有人只要輸入同一個「6 碼房間代碼」，任何人新增或修改帳目，大家的手機都會自動即時更新！</div>
     
     <div id="share-export-section">
-      <!-- 區塊 1：雲端即時房間 -->
       <div class="box" style="background:#ecfdf5; border-color:#6ee7b7; margin-top:8px;">
         <div class="between">
           <h3 style="color:#065f46; margin:0;">🟢 1. 雲端即時共編房間 (推薦)</h3>
@@ -301,7 +349,6 @@
         <input type="password" id="modal-group-pwd" placeholder="輸入密碼（留空代表不設密碼）" oninput="updateGroupPassword(this.value)">
       </div>
 
-      <!-- 區塊 2：離線壓縮碼備份 -->
       <div class="box" style="margin-top:10px;">
         <h3>🗜️ 2. 離線精簡備份碼（無網路時備用）</h3>
         <input type="text" id="modal-export-data" readonly style="font-size:12px; background:#fff; color:#475569; margin-bottom:6px;" onclick="this.select()">
@@ -309,7 +356,6 @@
       </div>
     </div>
 
-    <!-- 區塊 3：加入別人的雲端房間 -->
     <div class="box" style="background:#eef2ff; border-color:#c7d2fe; margin-top:12px;">
       <h3 style="color:#3730a3;">📥 加入朋友的雲端共編群組</h3>
       <div class="sub" style="margin-bottom:6px;">輸入朋友分享的「6 碼房間代碼」（例如 A8K9M2），即可永久雙向同步所有帳務：</div>
@@ -324,12 +370,15 @@
 </div>
 
 <script>
+var THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
 var state = {
-  tab: 'groups',
+  tab: 'groups',          // 'groups' (進行中) | 'archived' (已封存收藏) | 'sys' (系統成員庫)
   showMemberPanel: false,
   editingExpenseId: null,
   systemMembers: [],
   groups: [],
+  claimedMap: {},         // 本機認領身分紀錄：{ groupId: memberId }（不隨雲端覆蓋，確保每個人手機記得自己是誰）
   currentGroupId: null,
   isSyncing: false,
   lastSyncText: '',
@@ -356,10 +405,28 @@ function genShortRoomCode() {
   return res;
 }
 
+function nowTimeStr() {
+  var d = new Date();
+  var hh = String(d.getHours()).padStart(2, '0');
+  var mm = String(d.getMinutes()).padStart(2, '0');
+  var ss = String(d.getSeconds()).padStart(2, '0');
+  return hh + ':' + mm + ':' + ss;
+}
+
+function nowDateTimeShort() {
+  var d = new Date();
+  var mo = String(d.getMonth() + 1).padStart(2, '0');
+  var da = String(d.getDate()).padStart(2, '0');
+  var hh = String(d.getHours()).padStart(2, '0');
+  var mm = String(d.getMinutes()).padStart(2, '0');
+  return mo + '/' + da + ' ' + hh + ':' + mm;
+}
+
 function saveData() {
   try {
     localStorage.setItem('split_pro_sys_v5', JSON.stringify(state.systemMembers));
     localStorage.setItem('split_pro_grps_v5', JSON.stringify(state.groups));
+    localStorage.setItem('split_pro_claimed_v6', JSON.stringify(state.claimedMap));
   } catch (e) {}
 }
 
@@ -367,9 +434,32 @@ function loadData() {
   try {
     var s = localStorage.getItem('split_pro_sys_v5');
     var g = localStorage.getItem('split_pro_grps_v5');
+    var c = localStorage.getItem('split_pro_claimed_v6');
     if (s) state.systemMembers = JSON.parse(s);
     if (g) state.groups = JSON.parse(g);
+    if (c) state.claimedMap = JSON.parse(c);
   } catch (e) {}
+}
+
+// ==================== 30 天未查看自動刪除已封存群組機制 ====================
+function purgeExpiredArchivedGroups() {
+  var now = Date.now();
+  var removedNames = [];
+  state.groups = state.groups.filter(function(g) {
+    if (!g.isArchived) return true;
+    var lastViewed = g.lastViewedAt || g.archivedAt || now;
+    if (now - lastViewed > THIRTY_DAYS_MS) {
+      removedNames.push(g.name);
+      return false;
+    }
+    return true;
+  });
+  if (removedNames.length > 0) {
+    saveData();
+    setTimeout(function() {
+      alert('🧹 系統自動清理通知：\n已封存群組【' + removedNames.join('、') + '】因連續超過 30 天未點開查看，已自動永久刪除。');
+    }, 300);
+  }
 }
 
 function getCurrentGroup() {
@@ -379,24 +469,136 @@ function getCurrentGroup() {
   return null;
 }
 
-function nowTimeStr() {
-  var d = new Date();
-  var hh = String(d.getHours()).padStart(2, '0');
-  var mm = String(d.getMinutes()).padStart(2, '0');
-  var ss = String(d.getSeconds()).padStart(2, '0');
-  return hh + ':' + mm + ':' + ss;
+// 取得目前使用者在此群組「認領」的身分名稱
+function getClaimedActorName(grp) {
+  if (!grp) return '未具名成員';
+  var claimedId = state.claimedMap[grp.id];
+  if (!claimedId) return '未具名成員';
+  var found = (grp.members || []).find(function(m) { return m.id === claimedId; });
+  return found ? found.name : '未具名成員';
+}
+
+// 認領或取消認領本機身分
+function claimIdentity(gmId) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  if (state.claimedMap[grp.id] === gmId) {
+    delete state.claimedMap[grp.id];
+  } else {
+    state.claimedMap[grp.id] = gmId;
+  }
+  saveData();
+  renderAll();
+}
+
+// ==================== 異動紀錄 (操作日誌) 與 Undo 復原快照機制 ====================
+function ensureGroupHistoryProps(grp) {
+  if (!grp) return;
+  if (!Array.isArray(grp.logs)) grp.logs = [];
+  if (!Array.isArray(grp.undoStack)) grp.undoStack = [];
+}
+
+// 在修改 expenses 前，先將目前狀態壓入 undoStack (最多保留 15 步以維持輕量)
+function pushUndoSnapshot(grp, actionDesc) {
+  ensureGroupHistoryProps(grp);
+  var snapshot = {
+    expensesJson: JSON.stringify(grp.expenses || []),
+    desc: actionDesc
+  };
+  grp.undoStack.push(snapshot);
+  if (grp.undoStack.length > 15) {
+    grp.undoStack.shift();
+  }
+}
+
+function addAuditLog(grp, actionType, detailText) {
+  ensureGroupHistoryProps(grp);
+  var actor = getClaimedActorName(grp);
+  grp.logs.unshift({
+    id: uid('log'),
+    time: nowDateTimeShort(),
+    actor: actor,
+    type: actionType, // 'add' | 'edit' | 'delete' | 'undo' | 'archive'
+    detail: detailText
+  });
+  if (grp.logs.length > 40) {
+    grp.logs = grp.logs.slice(0, 40);
+  }
+}
+
+function undoLastAction() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  if (grp.isArchived) {
+    alert('此群組目前已封存，請先解除封存後再操作！');
+    return;
+  }
+  ensureGroupHistoryProps(grp);
+  if (grp.undoStack.length === 0) {
+    alert('目前沒有可復原的上一步操作！');
+    return;
+  }
+  var lastSnap = grp.undoStack.pop();
+  try {
+    grp.expenses = JSON.parse(lastSnap.expensesJson);
+    state.editingExpenseId = null;
+    addAuditLog(grp, 'undo', '復原了「' + lastSnap.desc + '」，帳務已回到上一步狀態');
+    resetExpenseForm();
+    markGroupUpdatedAndPush(grp);
+    renderAll();
+  } catch (e) {
+    alert('復原失敗');
+  }
+}
+
+// ==================== 封存結案 (Archive) 與 30 天重置邏輯 ====================
+function toggleArchiveGroup(toArchive) {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  if (toArchive) {
+    if (!confirm('確定要將【' + grp.name + '】封存結案嗎？\n\n• 封存後群組將移至「📦 已封存收藏」分頁並鎖定保護最終分帳結果。\n• 若連續超過 30 天未點開查看，系統將自動清除此群組。')) return;
+    grp.isArchived = true;
+    grp.archivedAt = Date.now();
+    grp.lastViewedAt = Date.now();
+    state.editingExpenseId = null;
+    addAuditLog(grp, 'archive', '將此群組封存結案收藏');
+    markGroupUpdatedAndPush(grp);
+    switchTab('archived');
+  } else {
+    grp.isArchived = false;
+    grp.archivedAt = null;
+    grp.lastViewedAt = Date.now();
+    addAuditLog(grp, 'archive', '解除封存，恢復群組編輯狀態');
+    markGroupUpdatedAndPush(grp);
+    switchTab('groups');
+  }
+}
+
+function getArchiveRemainingDays(grp) {
+  if (!grp || !grp.isArchived) return 30;
+  var lastViewed = grp.lastViewedAt || grp.archivedAt || Date.now();
+  var elapsed = Date.now() - lastViewed;
+  var remainMs = Math.max(0, THIRTY_DAYS_MS - elapsed);
+  return Math.ceil(remainMs / (24 * 60 * 60 * 1000));
 }
 
 function init() {
   loadData();
-  if (state.groups.length > 0) {
+  purgeExpiredArchivedGroups();
+
+  var activeGrps = state.groups.filter(function(g) { return !g.isArchived; });
+  if (activeGrps.length > 0) {
+    state.currentGroupId = activeGrps[0].id;
+    state.tab = 'groups';
+  } else if (state.groups.length > 0) {
     state.currentGroupId = state.groups[0].id;
+    state.tab = 'archived';
   } else {
     state.currentGroupId = null;
   }
+
   resetExpenseForm();
   renderAll();
-
   syncFromCloudNow(false);
 
   setInterval(function() {
@@ -404,11 +606,14 @@ function init() {
   }, 6000);
 
   document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) syncFromCloudNow(false);
+    if (!document.hidden) {
+      purgeExpiredArchivedGroups();
+      syncFromCloudNow(false);
+    }
   });
 }
 
-// ==================== 陣列壓縮與解壓縮 ====================
+// ==================== 陣列壓縮與解壓縮 (擴充支援操作人、異動紀錄、封存狀態) ====================
 var MODE_TO_INT = { equal: 0, ratio: 1, exact: 2, hybrid: 3 };
 var INT_TO_MODE = ['equal', 'ratio', 'exact', 'hybrid'];
 
@@ -454,19 +659,33 @@ function encodeCompactGroup(grp) {
       pArr,
       sArr,
       rpArr,
-      e.id
+      e.id,
+      e.createdBy || '',
+      e.updatedBy || ''
     ];
   });
 
+  var logsCompact = (grp.logs || []).slice(0, 25).map(function(lg) {
+    return [lg.time, lg.actor, lg.type, lg.detail];
+  });
+
+  var metaArchive = [
+    grp.isArchived ? 1 : 0,
+    grp.archivedAt || 0,
+    grp.lastViewedAt || Date.now()
+  ];
+
   var payload = [
-    2,
+    3,
     grp.id,
     grp.name,
     grp.password || '',
     mCompact,
     eCompact,
     grp.cloudRoomId || '',
-    grp.updatedAt || Date.now()
+    grp.updatedAt || Date.now(),
+    logsCompact,
+    metaArchive
   ];
   var jsonStr = JSON.stringify(payload);
   return 'S1:' + btoa(encodeURIComponent(jsonStr));
@@ -479,7 +698,7 @@ function decodeCompactGroup(codeStr) {
 
   var jsonStr = decodeURIComponent(atob(raw));
   var p = JSON.parse(jsonStr);
-  if (!Array.isArray(p) || (p[0] !== 1 && p[0] !== 2)) throw new Error('Invalid format');
+  if (!Array.isArray(p) || (p[0] !== 1 && p[0] !== 2 && p[0] !== 3)) throw new Error('Invalid format');
 
   var gId = p[1] || uid('grp');
   var gName = p[2] || '匯入的群組';
@@ -488,6 +707,8 @@ function decodeCompactGroup(codeStr) {
   var eCompact = p[5] || [];
   var cloudRoomId = p[6] || '';
   var updatedAt = p[7] || Date.now();
+  var logsCompact = p[8] || [];
+  var metaArchive = p[9] || [0, 0, Date.now()];
 
   var members = mCompact.map(function(item, idx) {
     return {
@@ -531,7 +752,19 @@ function decodeCompactGroup(codeStr) {
       hybridSubMode: item[4] === 1 ? 'ratio' : 'equal',
       payers: payers,
       shares: shares,
-      rawParts: rawParts
+      rawParts: rawParts,
+      createdBy: item[9] || '',
+      updatedBy: item[10] || ''
+    };
+  });
+
+  var logs = logsCompact.map(function(lg, idx) {
+    return {
+      id: 'log_' + idx + '_' + Date.now(),
+      time: lg[0] || '',
+      actor: lg[1] || '未具名成員',
+      type: lg[2] || 'add',
+      detail: lg[3] || ''
     };
   });
 
@@ -542,11 +775,16 @@ function decodeCompactGroup(codeStr) {
     cloudRoomId: cloudRoomId,
     updatedAt: updatedAt,
     members: members,
-    expenses: expenses
+    expenses: expenses,
+    logs: logs,
+    undoStack: [],
+    isArchived: metaArchive[0] === 1,
+    archivedAt: metaArchive[1] || null,
+    lastViewedAt: metaArchive[2] || Date.now()
   };
 }
 
-// ==================== 免 CORS 預檢 (Simple Request) 雲端讀寫引擎 ====================
+// ==================== 免 CORS 預檢雲端讀寫引擎 ====================
 var CLOUD_TOPIC_PREFIX = 'tw_split_app_live_v6_';
 
 function cloudWriteRoom(roomId, compactStr) {
@@ -634,7 +872,7 @@ function enableLiveCloudSync() {
     .catch(function() {
       btn.innerText = '✨ 點擊開啟雲端共編';
       btn.disabled = false;
-      alert('雲端連線失敗！如果您目前使用手機內的「程式碼預覽器」且該 App 禁止連網，請改用 Chrome / Safari 瀏覽器開啟此網頁。');
+      alert('雲端連線失敗！請確認使用 Chrome 或 Safari 瀏覽器並已連上網路。');
     });
 }
 
@@ -678,6 +916,8 @@ function syncFromCloudNow(manualClick) {
       var remoteTs = remoteGrp.updatedAt || data.ts || 0;
 
       if (remoteTs > localTs || manualClick) {
+        // 保留本機的 undoStack
+        remoteGrp.undoStack = grp.undoStack || [];
         var idx = state.groups.findIndex(function(g) { return g.id === grp.id; });
         if (idx >= 0) {
           state.groups[idx] = remoteGrp;
@@ -739,10 +979,16 @@ function createGroup() {
     password: '',
     cloudRoomId: '',
     updatedAt: Date.now(),
+    isArchived: false,
+    archivedAt: null,
+    lastViewedAt: Date.now(),
     members: [],
-    expenses: []
+    expenses: [],
+    logs: [],
+    undoStack: []
   });
   state.currentGroupId = gId;
+  state.tab = 'groups';
   state.showMemberPanel = true;
   state.editingExpenseId = null;
   input.value = '';
@@ -754,9 +1000,10 @@ function createGroup() {
 function deleteCurrentGroup() {
   var grp = getCurrentGroup();
   if (!grp) return;
-  if (!confirm('確定要在此裝置移除「' + grp.name + '」群組嗎？')) return;
+  if (!confirm('確定要在此裝置永久移除「' + grp.name + '」群組嗎？')) return;
   state.groups = state.groups.filter(function(g) { return g.id !== grp.id; });
-  state.currentGroupId = state.groups.length > 0 ? state.groups[0].id : null;
+  var sameTabGrps = state.groups.filter(function(g) { return state.tab === 'archived' ? !!g.isArchived : !g.isArchived; });
+  state.currentGroupId = sameTabGrps.length > 0 ? sameTabGrps[0].id : null;
   state.editingExpenseId = null;
   resetExpenseForm();
   saveData();
@@ -765,16 +1012,20 @@ function deleteCurrentGroup() {
 
 function selectGroup(gId) {
   var grp = state.groups.find(function(g) { return g.id === gId; });
-  if (grp && grp.password && state.currentGroupId !== gId) {
+  if (!grp) return;
+  if (grp.password && state.currentGroupId !== gId) {
     var pwd = prompt('此群組已設定密碼，請輸入密碼解鎖：');
     if (pwd !== grp.password) {
       alert('密碼錯誤！');
       return;
     }
   }
+  // 點進去看群組時，立即更新 lastViewedAt（重置 30 天未查看自動刪除的倒數計時！）
+  grp.lastViewedAt = Date.now();
   state.currentGroupId = gId;
   state.editingExpenseId = null;
   resetExpenseForm();
+  saveData();
   renderAll();
   syncFromCloudNow(false);
 }
@@ -786,7 +1037,7 @@ function toggleMemberPanel() {
 
 function importSingleSysMember(sysId) {
   var grp = getCurrentGroup();
-  if (!grp) return;
+  if (!grp || grp.isArchived) return;
   var sm = state.systemMembers.find(function(m) { return m.id === sysId; });
   if (!sm) return;
   if (!grp.members.some(function(gm) { return gm.systemId === sm.id || gm.name === sm.name; })) {
@@ -799,7 +1050,7 @@ function importSingleSysMember(sysId) {
 
 function importAllSystemMembers() {
   var grp = getCurrentGroup();
-  if (!grp) return;
+  if (!grp || grp.isArchived) return;
   state.systemMembers.forEach(function(sm) {
     if (!grp.members.some(function(gm) { return gm.systemId === sm.id || gm.name === sm.name; })) {
       grp.members.push({ id: 'gm_' + sm.id, systemId: sm.id, name: sm.name, isSystem: true });
@@ -812,7 +1063,7 @@ function importAllSystemMembers() {
 
 function addGroupMember() {
   var grp = getCurrentGroup();
-  if (!grp) return;
+  if (!grp || grp.isArchived) return;
   var input = document.getElementById('new-group-member-input');
   var syncChk = document.getElementById('sync-to-sys-checkbox');
   var raw = input.value.trim();
@@ -859,8 +1110,11 @@ function promoteToSystem(gmId) {
 
 function removeGroupMember(gmId) {
   var grp = getCurrentGroup();
-  if (!grp) return;
+  if (!grp || grp.isArchived) return;
   grp.members = grp.members.filter(function(m) { return m.id !== gmId; });
+  if (state.claimedMap[grp.id] === gmId) {
+    delete state.claimedMap[grp.id];
+  }
   syncFormWithGroup();
   markGroupUpdatedAndPush(grp);
   renderAll();
@@ -892,6 +1146,7 @@ function syncFormWithGroup() {
   if (!grp) return;
   if (!grp.members) grp.members = [];
   if (!grp.expenses) grp.expenses = [];
+  ensureGroupHistoryProps(grp);
 
   grp.members.forEach(function(m, idx) {
     if (!state.form.payers[m.id]) {
@@ -915,6 +1170,10 @@ function syncFormWithGroup() {
 function editExpense(expId) {
   var grp = getCurrentGroup();
   if (!grp) return;
+  if (grp.isArchived) {
+    alert('此群組已封存，若要編輯請先點擊上方「📤 解除封存」！');
+    return;
+  }
   var exp = grp.expenses.find(function(e) { return e.id === expId; });
   if (!exp) return;
 
@@ -1123,7 +1382,7 @@ function calculateCurrentShares() {
 
 function saveExpense() {
   var grp = getCurrentGroup();
-  if (!grp) return;
+  if (!grp || grp.isArchived) return;
   syncFormWithGroup();
 
   var title = state.form.title.trim();
@@ -1154,28 +1413,53 @@ function saveExpense() {
   Object.keys(shares).forEach(function(k) { if (shares[k] > 0) sharesSaved[k] = shares[k]; });
 
   var rawPartsCopy = JSON.parse(JSON.stringify(state.form.parts));
-
-  var recordObj = {
-    id: state.editingExpenseId ? state.editingExpenseId : uid('exp'),
-    title: title,
-    totalAmount: total,
-    date: state.form.date || '',
-    splitMode: state.form.splitMode,
-    hybridSubMode: state.form.hybridSubMode,
-    payers: payersSaved,
-    shares: sharesSaved,
-    rawParts: rawPartsCopy
-  };
+  var actorName = getClaimedActorName(grp);
 
   if (state.editingExpenseId) {
     var idx = grp.expenses.findIndex(function(e) { return e.id === state.editingExpenseId; });
-    if (idx >= 0) {
-      grp.expenses[idx] = recordObj;
-    } else {
-      grp.expenses.unshift(recordObj);
-    }
+    var oldExp = idx >= 0 ? grp.expenses[idx] : null;
+    var oldSummary = oldExp ? (oldExp.title + ' ($' + fmt(oldExp.totalAmount) + ')') : title;
+
+    // 紀錄 Undo 快照與操作日誌
+    pushUndoSnapshot(grp, '修改帳務：' + oldSummary);
+    var changeDetail = oldExp && (oldExp.title !== title || Math.abs(oldExp.totalAmount - total) >= 0.1)
+      ? '修改了「' + oldExp.title + ' ($' + fmt(oldExp.totalAmount) + ')」➔「' + title + ' ($' + fmt(total) + ')」'
+      : '修改了「' + title + ' ($' + fmt(total) + ')」的分攤明細';
+    addAuditLog(grp, 'edit', changeDetail);
+
+    var recordObj = {
+      id: state.editingExpenseId,
+      title: title,
+      totalAmount: total,
+      date: state.form.date || '',
+      splitMode: state.form.splitMode,
+      hybridSubMode: state.form.hybridSubMode,
+      payers: payersSaved,
+      shares: sharesSaved,
+      rawParts: rawPartsCopy,
+      createdBy: (oldExp && oldExp.createdBy) ? oldExp.createdBy : actorName,
+      updatedBy: actorName
+    };
+
+    if (idx >= 0) grp.expenses[idx] = recordObj;
+    else grp.expenses.unshift(recordObj);
   } else {
-    grp.expenses.unshift(recordObj);
+    pushUndoSnapshot(grp, '新增帳務：' + title + ' ($' + fmt(total) + ')');
+    addAuditLog(grp, 'add', '新增了「' + title + '」— $' + fmt(total));
+
+    grp.expenses.unshift({
+      id: uid('exp'),
+      title: title,
+      totalAmount: total,
+      date: state.form.date || '',
+      splitMode: state.form.splitMode,
+      hybridSubMode: state.form.hybridSubMode,
+      payers: payersSaved,
+      shares: sharesSaved,
+      rawParts: rawPartsCopy,
+      createdBy: actorName,
+      updatedBy: ''
+    });
   }
 
   resetExpenseForm();
@@ -1185,8 +1469,14 @@ function saveExpense() {
 
 function deleteExpense(expId) {
   var grp = getCurrentGroup();
-  if (!grp) return;
-  if (!confirm('確定要刪除這筆花費紀錄嗎？')) return;
+  if (!grp || grp.isArchived) return;
+  var targetExp = grp.expenses.find(function(e) { return e.id === expId; });
+  if (!targetExp) return;
+  if (!confirm('確定要刪除「' + targetExp.title + ' ($' + fmt(targetExp.totalAmount) + ')」嗎？\n(刪除後若後悔，可點擊「↩️ 復原上一步」救回)')) return;
+
+  pushUndoSnapshot(grp, '刪除帳務：' + targetExp.title + ' ($' + fmt(targetExp.totalAmount) + ')');
+  addAuditLog(grp, 'delete', '刪除了「' + targetExp.title + '」— $' + fmt(targetExp.totalAmount));
+
   if (state.editingExpenseId === expId) {
     resetExpenseForm();
   }
@@ -1258,9 +1548,9 @@ function applyImportedGroupObject(importedGrp) {
   if (!importedGrp || !importedGrp.id || !Array.isArray(importedGrp.members)) {
     throw new Error('格式錯誤');
   }
-  if (!Array.isArray(importedGrp.expenses)) {
-    importedGrp.expenses = [];
-  }
+  if (!Array.isArray(importedGrp.expenses)) importedGrp.expenses = [];
+  ensureGroupHistoryProps(importedGrp);
+  importedGrp.lastViewedAt = Date.now();
 
   importedGrp.members.forEach(function(gm) {
     if (gm.isSystem && !state.systemMembers.some(function(sm) { return sm.name === gm.name; })) {
@@ -1279,12 +1569,13 @@ function applyImportedGroupObject(importedGrp) {
   }
 
   state.currentGroupId = importedGrp.id;
+  state.tab = importedGrp.isArchived ? 'archived' : 'groups';
   state.lastSyncText = '✓ 已連線雲端即時共編 (' + nowTimeStr() + ')';
   resetExpenseForm();
   saveData();
   renderAll();
   closeShareModal();
-  alert('🎉 成功加入【' + importedGrp.name + '】！\n現在只要任何人新增或修改帳目，大家的畫面都會自動即時更新！');
+  alert('🎉 成功加入【' + importedGrp.name + '】！\n請在群組成員名單中點擊您的名字「🙋‍♂️ 認領我是他」，之後您新增或修改帳目就會自動標記您的名字！');
 }
 
 function importGroupData() {
@@ -1336,26 +1627,63 @@ function updateLiveBannerUI() {
 
 function switchTab(t) {
   state.tab = t;
-  document.getElementById('view-groups').className = t === 'groups' ? '' : 'hidden';
+  document.getElementById('view-groups').className = (t === 'groups' || t === 'archived') ? '' : 'hidden';
   document.getElementById('view-sys').className = t === 'sys' ? 'card' : 'card hidden';
   document.getElementById('tab-groups-btn').className = t === 'groups' ? 'btn-outline active' : 'btn-outline';
+  document.getElementById('tab-archived-btn').className = t === 'archived' ? 'btn-outline active' : 'btn-outline';
   document.getElementById('tab-sys-btn').className = t === 'sys' ? 'btn-outline active' : 'btn-outline';
+
+  if (t === 'groups' || t === 'archived') {
+    var wantArchived = (t === 'archived');
+    var cur = getCurrentGroup();
+    if (!cur || !!cur.isArchived !== wantArchived) {
+      var list = state.groups.filter(function(g) { return !!g.isArchived === wantArchived; });
+      state.currentGroupId = list.length > 0 ? list[0].id : null;
+      if (state.currentGroupId) {
+        var newCur = getCurrentGroup();
+        if (newCur) newCur.lastViewedAt = Date.now();
+        saveData();
+      }
+    }
+  }
   renderAll();
 }
 
 function renderAll() {
   syncFormWithGroup();
+  var activeGrps = state.groups.filter(function(g) { return !g.isArchived; });
+  var archivedGrps = state.groups.filter(function(g) { return !!g.isArchived; });
+
   document.getElementById('sys-count').innerText = state.systemMembers.length;
-  document.getElementById('grp-count').innerText = state.groups.length;
+  document.getElementById('grp-active-count').innerText = activeGrps.length;
+  document.getElementById('grp-archived-count').innerText = archivedGrps.length;
+
   renderSysMembers();
   renderGroupTabs();
+
+  var createBar = document.getElementById('create-group-bar');
+  var archHint = document.getElementById('archived-tab-hint');
+  if (state.tab === 'archived') {
+    createBar.className = 'row hidden';
+    archHint.className = 'sub';
+  } else {
+    createBar.className = 'row';
+    archHint.className = 'sub hidden';
+  }
 
   var grp = getCurrentGroup();
   var emptyGuide = document.getElementById('empty-group-guide');
   var grpContent = document.getElementById('group-content');
-  if (!grp) {
+  if (!grp || (state.tab === 'groups' && grp.isArchived) || (state.tab === 'archived' && !grp.isArchived)) {
     emptyGuide.className = 'card';
     grpContent.className = 'hidden';
+    if (state.tab === 'archived') {
+      document.getElementById('empty-guide-title').innerText = '目前沒有已封存收藏的旅遊群組';
+      document.getElementById('empty-guide-desc').innerText = '當旅遊分帳結束後，可點擊群組內的「📦 封存結案」，將最終分帳結果收藏至此處（連續 30 天未點開查看將自動清理）。';
+    } else {
+      document.getElementById('empty-guide-title').innerText = '尚未建立任何進行中的旅遊分帳群組';
+      document.getElementById('empty-guide-desc').innerText = '請在上方輸入旅遊名稱點擊「＋ 建立群組」，或點擊「☁️ 加入雲端群組」輸入朋友分享的 6 碼房間代碼。';
+    }
     return;
   } else {
     emptyGuide.className = 'card hidden';
@@ -1363,9 +1691,46 @@ function renderAll() {
   }
 
   updateLiveBannerUI();
+  renderArchivedBannerAndControls();
   renderGroupMembersSection();
   renderExpenseSection();
   renderSettlementAndHistory();
+  renderAuditLogsSection();
+}
+
+function renderArchivedBannerAndControls() {
+  var grp = getCurrentGroup();
+  if (!grp) return;
+  ensureGroupHistoryProps(grp);
+
+  var archBanner = document.getElementById('archived-status-banner');
+  var btnArchive = document.getElementById('btn-archive-group');
+  var btnToggleMember = document.getElementById('btn-toggle-member-panel');
+  var expFormCard = document.getElementById('expense-form-card');
+
+  var canUndo = !grp.isArchived && grp.undoStack && grp.undoStack.length > 0;
+  var lastUndoDesc = canUndo ? grp.undoStack[grp.undoStack.length - 1].desc : '';
+  ['btn-undo-top', 'btn-undo-exp-header', 'btn-undo-log-header'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.disabled = !canUndo;
+      el.title = canUndo ? ('點擊復原：' + lastUndoDesc) : '目前無可復原的操作';
+    }
+  });
+
+  if (grp.isArchived) {
+    archBanner.className = 'archive-banner';
+    var remDays = getArchiveRemainingDays(grp);
+    document.getElementById('archived-countdown-text').innerHTML =
+      '⏳ 距離 30 天未查看自動刪除還有 <strong>' + remDays + ' 天</strong>（您今天已點開查看，計時器已自動重置為滿 30 天！）';
+    btnArchive.className = 'btn-archive hidden';
+    btnToggleMember.className = 'btn-outline btn-sm hidden';
+    expFormCard.className = 'card hidden';
+  } else {
+    archBanner.className = 'archive-banner hidden';
+    btnArchive.className = 'btn-archive';
+    btnToggleMember.className = 'btn-outline btn-sm';
+  }
 }
 
 function renderSysMembers() {
@@ -1380,22 +1745,34 @@ function renderSysMembers() {
 
 function renderGroupTabs() {
   var box = document.getElementById('group-tabs-list');
+  var wantArchived = (state.tab === 'archived');
+  var filtered = state.groups.filter(function(g) { return !!g.isArchived === wantArchived; });
   var html = '';
-  state.groups.forEach(function(g) {
+  filtered.forEach(function(g) {
     var active = g.id === state.currentGroupId ? 'active' : '';
     var lockIcon = g.password ? '🔒 ' : '';
     var cloudIcon = g.cloudRoomId ? '🟢 ' : '';
+    var archBadge = g.isArchived ? (' [剩' + getArchiveRemainingDays(g) + '天]') : '';
     html += '<button class="btn-outline ' + active + '" onclick="selectGroup(\'' + g.id + '\')">' +
-      cloudIcon + lockIcon + g.name + ' (' + g.members.length + '人)</button>';
+      cloudIcon + lockIcon + g.name + ' (' + g.members.length + '人)' + archBadge + '</button>';
   });
-  box.innerHTML = html || '<span class="sub" style="margin:0;">請先建立第一個旅遊群組 👉</span>';
+  box.innerHTML = html || (wantArchived ? '<span class="sub" style="margin:0;">尚無已封存的群組</span>' : '<span class="sub" style="margin:0;">請先建立第一個旅遊群組 👉</span>');
 }
 
 function renderGroupMembersSection() {
   var grp = getCurrentGroup();
   if (!grp) return;
   document.getElementById('current-group-title').innerText = '📍 【' + grp.name + '】群組成員 (' + grp.members.length + '人)';
-  document.getElementById('member-manage-panel').className = state.showMemberPanel ? 'box' : 'box hidden';
+  document.getElementById('member-manage-panel').className = (!grp.isArchived && state.showMemberPanel) ? 'box' : 'box hidden';
+
+  var claimedId = state.claimedMap[grp.id];
+  var claimedMember = (grp.members || []).find(function(m) { return m.id === claimedId; });
+  var hintEl = document.getElementById('claimed-identity-hint');
+  if (claimedMember) {
+    hintEl.innerHTML = '🙋‍♂️ 您目前已在此裝置認領身分為：<strong style="color:#4f46e5;">' + claimedMember.name + '</strong>（您新增/修改/刪除的帳務將自動標記此名字，免登入）';
+  } else {
+    hintEl.innerHTML = '💡 <strong>免登入認領身分：</strong>請點擊下方您自己的名字旁「🙋‍♂️ 認領我是他」，系統就會在操作紀錄標記您的名字！';
+  }
 
   var availBox = document.getElementById('available-sys-members');
   var availHtml = '';
@@ -1409,24 +1786,38 @@ function renderGroupMembersSection() {
   var listBox = document.getElementById('group-members-list');
   var listHtml = '';
   grp.members.forEach(function(gm) {
-    var badge = gm.isSystem
+    var isMe = (state.claimedMap[grp.id] === gm.id);
+    var chipCls = isMe ? 'chip claimed-me' : 'chip';
+    var claimBtn = isMe
+      ? '<button class=" badge badge-me" style="border:none; cursor:pointer; padding:3px 7px;" onclick="claimIdentity(\'' + gm.id + '\')" title="點擊可取消認領">🙋‍♂️ 我是' + gm.name + ' (本機)</button>'
+      : '<button class="btn-outline btn-sm" style="padding:2px 6px; font-size:11px;" onclick="claimIdentity(\'' + gm.id + '\')">🙋‍♂️ 認領我是他</button>';
+
+    var sysBadge = gm.isSystem
       ? '<span class="badge">系統成員</span>'
-      : '<span class="badge badge-local">群組獨立</span> <button class="btn-outline btn-sm" style="padding:2px 6px; font-size:11px;" onclick="promoteToSystem(\'' + gm.id + '\')">歸納回系統</button>';
-    listHtml += '<div class="chip" style="cursor:default;"><strong>' + gm.name + '</strong> ' + badge +
-      '<button class="btn-danger" onclick="removeGroupMember(\'' + gm.id + '\')">✕</button></div>';
+      : '<span class="badge badge-local">群組獨立</span>' + (!grp.isArchived ? ' <button class="btn-outline btn-sm" style="padding:2px 6px; font-size:11px;" onclick="promoteToSystem(\'' + gm.id + '\')">歸納回系統</button>' : '');
+
+    var delBtn = !grp.isArchived
+      ? '<button class="btn-danger" onclick="removeGroupMember(\'' + gm.id + '\')">✕</button>'
+      : '';
+
+    listHtml += '<div class="' + chipCls + '" style="cursor:default;"><strong>' + gm.name + '</strong> ' + claimBtn + ' ' + sysBadge + ' ' + delBtn + '</div>';
   });
   listBox.innerHTML = listHtml || '<div class="sub">此群組尚無成員，請點擊上方「➕ 新增 / 拉入成員」建立名單。</div>';
 }
 
 function renderExpenseSection() {
   var grp = getCurrentGroup();
-  if (!grp) return;
+  if (!grp || grp.isArchived) return;
 
   var formCard = document.getElementById('expense-form-card');
   var headerTitle = document.getElementById('form-header-title');
+  var actorBadge = document.getElementById('form-actor-badge');
   var cancelBtnTop = document.getElementById('cancel-edit-btn');
   var cancelBtnBottom = document.getElementById('cancel-edit-btn-bottom');
   var submitBtn = document.getElementById('submit-expense-btn');
+
+  var actorName = getClaimedActorName(grp);
+  actorBadge.innerText = '✍️ 目前操作人身分：' + actorName;
 
   if (state.editingExpenseId) {
     formCard.className = 'card editing-mode';
@@ -1434,7 +1825,7 @@ function renderExpenseSection() {
     cancelBtnTop.className = 'btn-outline btn-sm';
     cancelBtnBottom.className = 'btn-outline';
     submitBtn.className = 'btn-warning';
-    submitBtn.innerText = '💾 儲存修改 (並自動同步)';
+    submitBtn.innerText = '💾 儲存修改 (以 ' + actorName + ' 身分記錄)';
   } else {
     formCard.className = 'card';
     headerTitle.innerText = '➕ 新增一筆花費紀錄';
@@ -1622,21 +2013,63 @@ function renderSettlementAndHistory() {
     var pStr = Object.keys(e.payers).map(function(k) { return (bal[k] ? bal[k].name : '已移除成員') + '($' + fmt(e.payers[k]) + ')'; }).join('、');
     var sStr = Object.keys(e.shares).map(function(k) { return (bal[k] ? bal[k].name : '已移除成員') + ':$' + fmt(e.shares[k]); }).join('、');
     var dateStr = e.date ? '<span class="badge" style="background:#f1f5f9; color:#475569;">📅 ' + e.date + '</span> ' : '';
+
+    var actorTag = '';
+    if (e.updatedBy) {
+      actorTag = ' <span class="badge badge-actor">✍️ 由 ' + e.updatedBy + ' 修改</span>';
+    } else if (e.createdBy) {
+      actorTag = ' <span class="badge badge-actor">✍️ 由 ' + e.createdBy + ' 新增</span>';
+    }
+
     var boxBorderStyle = isEditingThis ? 'border: 2px solid #f59e0b; background: #fffbeb;' : '';
+    var actionBtns = !grp.isArchived
+      ? '<div class="row">' +
+          '<button class="btn-edit" onclick="editExpense(\'' + e.id + '\')">✏️ 編輯</button>' +
+          '<button class="btn-danger" onclick="deleteExpense(\'' + e.id + '\')">刪除</button>' +
+        '</div>'
+      : '<span class="badge" style="background:#e2e8f0; color:#475569;">已封存唯讀</span>';
 
     hHtml += '<div class="box" style="margin-top:8px; ' + boxBorderStyle + '">' +
       '<div class="between">' +
-        '<div>' + dateStr + '<strong>' + e.title + ' — $' + fmt(e.totalAmount) + '</strong> ' +
+        '<div>' + dateStr + '<strong>' + e.title + ' — $' + fmt(e.totalAmount) + '</strong>' + actorTag + ' ' +
         (isEditingThis ? '<span class="badge badge-local">正在上方編輯中...</span>' : '') + '</div>' +
-        '<div class="row">' +
-          '<button class="btn-edit" onclick="editExpense(\'' + e.id + '\')">✏️ 編輯</button>' +
-          '<button class="btn-danger" onclick="deleteExpense(\'' + e.id + '\')">刪除</button>' +
-        '</div>' +
+        actionBtns +
       '</div>' +
       '<div class="sub" style="margin:4px 0 0 0;">付款人：' + pStr + '<br>分攤明細：' + sStr + '</div>' +
       '</div>';
   });
   histBox.innerHTML = hHtml;
+}
+
+function renderAuditLogsSection() {
+  var grp = getCurrentGroup();
+  var box = document.getElementById('logs-list');
+  if (!grp || !grp.logs || grp.logs.length === 0) {
+    box.innerHTML = '<div class="sub" style="padding:8px;">尚無異動紀錄。新增、修改或刪除花費時將自動記錄於此。</div>';
+    return;
+  }
+
+  var typeBadgeMap = {
+    add: '<span class="badge" style="background:#dcfce7; color:#15803d;">＋ 新增</span>',
+    edit: '<span class="badge" style="background:#fef3c7; color:#b45309;">✏️ 修改</span>',
+    delete: '<span class="badge" style="background:#fee2e2; color:#dc2626;">🗑️ 刪除</span>',
+    undo: '<span class="badge" style="background:#ede9fe; color:#5b21b6;">↩️ 復原</span>',
+    archive: '<span class="badge" style="background:#e2e8f0; color:#334155;">📦 封存</span>'
+  };
+
+  var html = '';
+  grp.logs.forEach(function(lg) {
+    var tBadge = typeBadgeMap[lg.type] || typeBadgeMap.add;
+    html += '<div class="log-item">' +
+      '<div>' +
+        '<span style="color:#64748b; font-family:monospace; margin-right:6px;">' + (lg.time || '') + '</span>' +
+        tBadge + ' ' +
+        '<strong style="color:#4f46e5; margin:0 4px;">[' + (lg.actor || '未具名成員') + ']</strong> ' +
+        '<span>' + lg.detail + '</span>' +
+      '</div>' +
+    '</div>';
+  });
+  box.innerHTML = html;
 }
 
 init();
